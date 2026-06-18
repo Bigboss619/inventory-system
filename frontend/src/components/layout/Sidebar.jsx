@@ -13,7 +13,7 @@ import {
 } from 'react-icons/fi';
 
 const menuItems = [
-  { path: '/', icon: FiHome, label: 'Dashboard' },
+  { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
   { path: '/inventory', icon: FiBox, label: 'Inventory' },
   { path: '/stock', icon: FiLayers, label: 'Stock' },
   { path: '/orders', icon: FiShoppingCart, label: 'Orders' },
@@ -36,8 +36,9 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-full w-64 bg-green-700 text-white transform transition-transform duration-300 ease-in-out
-          lg:translate-x-0 lg:static lg:z-auto
+          fixed top-0 left-0 z-50 h-full w-64 bg-green-700 text-white
+          transform transition-transform duration-300 ease-in-out
+          lg:translate-x-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >

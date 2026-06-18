@@ -23,17 +23,20 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
-      <div className="flex flex-col lg:flex-row">
-        {/* Main content area - hidden sidebar on desktop, shown beside sidebar */}
-        <div className="flex-1 flex flex-col min-h-screen">
-          <Header onToggleSidebar={toggleSidebar} user={MOCK_USER} />
+      {/* Desktop sidebar (fixed) */}
+      <div className="hidden lg:block lg:fixed lg:inset-y-0 lg:left-0 lg:z-40">
+        <Sidebar isOpen={true} onClose={closeSidebar} />
+      </div>
 
-          <main className="flex-1 p-4 lg:p-6">
-            <Outlet />
-          </main>
-        </div>
+      {/* Main content with left padding for desktop sidebar */}
+      <div className="lg:pl-64">
+        <Header onToggleSidebar={toggleSidebar} user={MOCK_USER} />
+        <main className="p-4 lg:p-6">
+          <Outlet />
+        </main>
       </div>
     </div>
   );
