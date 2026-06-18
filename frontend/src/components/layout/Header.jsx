@@ -21,7 +21,7 @@ const Header = ({ onToggleSidebar, user }) => {
               <input
                 type="text"
                 placeholder="Search..."
-                className="pl-10 pr-4 py-2 w-64 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                className="pl-10 pr-4 py-2 w-64 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -32,7 +32,7 @@ const Header = ({ onToggleSidebar, user }) => {
           {/* Notifications */}
           <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <FiBell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full" />
           </button>
 
           {/* User profile */}
@@ -45,7 +45,7 @@ const Header = ({ onToggleSidebar, user }) => {
                 {user?.role || 'Administrator'}
               </p>
             </div>
-            <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-white font-medium">
                 {user?.name?.charAt(0) || 'A'}
               </span>

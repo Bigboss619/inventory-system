@@ -74,23 +74,23 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-full w-64 bg-green-700 text-white
+          fixed top-0 left-0 z-50 h-full w-64 bg-blue-700 text-white
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between p-4 border-b border-green-600">
+        <div className="flex items-center justify-between p-4 border-b border-blue-600">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <FiBox className="w-6 h-6 text-green-700" />
+              <FiBox className="w-6 h-6 text-blue-700" />
             </div>
             <span className="text-lg font-bold">Inventory</span>
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-2 hover:bg-green-600 rounded-lg transition-colors"
+            className="lg:hidden p-2 hover:bg-blue-600 rounded-lg transition-colors"
           >
             <FiX className="w-5 h-5" />
           </button>
@@ -105,7 +105,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <>
                   <button
                     onClick={() => toggleMenu(item.title)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200"
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-blue-100 hover:bg-blue-600 transition-all duration-200"
                   >
                     <div className="flex items-center gap-3">
                       <item.icon className="w-5 h-5" />
@@ -120,7 +120,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
                   {/* Submenu */}
                   {openMenus[item.title] && (
-                    <div className="ml-4 pl-4 border-l border-green-500 space-y-1">
+                    <div className="ml-4 pl-4 border-l border-blue-500 space-y-1">
                       {item.children.map((child) => (
                         <NavLink
                           key={child.path}
@@ -129,8 +129,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                           className={({ isActive }) =>
                             `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 text-sm ${
                               isActive
-                                ? 'bg-white text-green-700 font-medium'
-                                : 'text-green-100 hover:bg-green-600'
+                                ? 'bg-white text-blue-700 font-medium'
+                                : 'text-blue-100 hover:bg-blue-600'
                             }`
                           }
                         >
@@ -149,8 +149,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                       isActive
-                        ? 'bg-white text-green-700 font-medium'
-                        : 'text-green-100 hover:bg-green-600'
+                        ? 'bg-white text-blue-700 font-medium'
+                        : 'text-blue-100 hover:bg-blue-600'
                     }`
                   }
                 >
@@ -163,15 +163,15 @@ const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Bottom section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-green-600 space-y-1">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-600 space-y-1">
           <NavLink
             to="/profile"
             onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                 isActive
-                  ? 'bg-white text-green-700 font-medium'
-                  : 'text-green-100 hover:bg-green-600'
+                  ? 'bg-white text-blue-700 font-medium'
+                  : 'text-blue-100 hover:bg-blue-600'
               }`
             }
           >
@@ -185,8 +185,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                 isActive
-                  ? 'bg-white text-green-700 font-medium'
-                  : 'text-green-100 hover:bg-green-600'
+                  ? 'bg-white text-blue-700 font-medium'
+                  : 'text-blue-100 hover:bg-blue-600'
               }`
             }
           >
