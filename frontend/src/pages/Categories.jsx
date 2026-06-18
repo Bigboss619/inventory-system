@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiEye, FiLayers, FiBox } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiEye, FiLayers, FiBox, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import CategoryModal from '../components/forms/CategoryModal';
+import * as XLSX from 'xlsx';
 
 // Mock data
 const MOCK_CATEGORIES = [
@@ -67,6 +68,34 @@ const Categories = () => {
     setModalOpen(false);
   };
 
+  const handleExportExcel = () => {
+    const exportData = categories.map(cat => ({
+      'Name': cat.name,
+      'Description': cat.description,
+      'Items': cat.items,
+      'Date Created': cat.dateCreated
+    }));
+
+    if (exportData.length === 0) {
+      toast.error('No categories to export');
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Categories');
+
+    ws['!cols'] = [
+      { wch: 20 }, // Name
+      { wch: 35 }, // Description
+      { wch: 10 }, // Items
+      { wch: 14 }  // Date Created
+    ];
+
+    XLSX.writeFile(wb, `categories-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Exported to Excel successfully');
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -75,13 +104,22 @@ const Categories = () => {
           <h1 className="text-2xl font-bold text-gray-900">Inventory Categories</h1>
           <p className="text-gray-500">Manage your inventory categories</p>
         </div>
-        <button
-          onClick={handleAddCategory}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <FiPlus className="w-5 h-5" />
-          <span>Add Category</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FiDownload className="w-5 h-5" />
+            <span>Export</span>
+          </button>
+          <button
+            onClick={handleAddCategory}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span>Add Category</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

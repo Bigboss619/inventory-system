@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiBox, FiAlertTriangle, FiX } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiBox, FiAlertTriangle, FiX, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { FiLoader } from 'react-icons/fi';
+import * as XLSX from 'xlsx';
 
 // Mock data
 const MOCK_ITEMS = [
@@ -87,6 +88,38 @@ const Items = () => {
     setModalOpen(false);
   };
 
+  const handleExportExcel = () => {
+    const exportData = filteredItems.map(item => ({
+      'Code': item.code,
+      'Name': item.name,
+      'Category': item.category,
+      'Quantity': item.quantity,
+      'Min Stock': item.minStock,
+      'Status': item.status === 'available' ? 'Available' : item.status === 'low' ? 'Low Stock' : 'Out of Stock'
+    }));
+
+    if (exportData.length === 0) {
+      toast.error('No items to export');
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Items');
+
+    ws['!cols'] = [
+      { wch: 12 }, // Code
+      { wch: 25 }, // Name
+      { wch: 15 }, // Category
+      { wch: 10 }, // Quantity
+      { wch: 10 }, // Min Stock
+      { wch: 12 }  // Status
+    ];
+
+    XLSX.writeFile(wb, `items-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Exported to Excel successfully');
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -95,13 +128,22 @@ const Items = () => {
           <h1 className="text-2xl font-bold text-gray-900">Inventory Items</h1>
           <p className="text-gray-500">Manage your inventory items</p>
         </div>
-        <button
-          onClick={handleAddItem}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <FiPlus className="w-5 h-5" />
-          <span>Add Item</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FiDownload className="w-5 h-5" />
+            <span>Export</span>
+          </button>
+          <button
+            onClick={handleAddItem}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span>Add Item</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

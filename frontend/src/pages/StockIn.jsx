@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiArrowDownCircle, FiX } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiArrowDownCircle, FiX, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { FiLoader } from 'react-icons/fi';
+import * as XLSX from 'xlsx';
 
 // Mock items for dropdown
 const MOCK_ITEMS = [
@@ -84,6 +85,36 @@ const StockIn = () => {
     setEditingRecord(null);
   };
 
+  const handleExportExcel = () => {
+    const exportData = filteredStock.map(record => ({
+      'Item': record.item,
+      'Quantity': record.quantity,
+      'Supplier': record.supplier,
+      'Added By': record.addedBy,
+      'Date': record.date
+    }));
+
+    if (exportData.length === 0) {
+      toast.error('No records to export');
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Stock In');
+
+    ws['!cols'] = [
+      { wch: 25 }, // Item
+      { wch: 10 }, // Quantity
+      { wch: 20 }, // Supplier
+      { wch: 12 }, // Added By
+      { wch: 12 }  // Date
+    ];
+
+    XLSX.writeFile(wb, `stock-in-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Exported to Excel successfully');
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -92,13 +123,22 @@ const StockIn = () => {
           <h1 className="text-2xl font-bold text-gray-900">Stock In</h1>
           <p className="text-gray-500">Track stock entering the inventory</p>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <FiPlus className="w-5 h-5" />
-          <span>Add Stock</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FiDownload className="w-5 h-5" />
+            <span>Export</span>
+          </button>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span>Add Stock</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

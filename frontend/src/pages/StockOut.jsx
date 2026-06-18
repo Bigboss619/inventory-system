@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiArrowUpCircle, FiX } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiArrowUpCircle, FiX, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { FiLoader } from 'react-icons/fi';
+import * as XLSX from 'xlsx';
 
 // Mock staff data
 const MOCK_STAFF = [
@@ -110,6 +111,39 @@ const StockOut = () => {
     setEditingRecord(null);
   };
 
+  const handleExportExcel = () => {
+    const exportData = filteredStock.map(record => ({
+      'Staff': record.staff,
+      'Department': record.department,
+      'Item': record.item,
+      'Quantity': record.quantity,
+      'Issued By': record.issuedBy,
+      'Date': record.date
+    }));
+
+    if (exportData.length === 0) {
+      toast.error('No records to export');
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Stock Out');
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 20 }, // Staff
+      { wch: 15 }, // Department
+      { wch: 25 }, // Item
+      { wch: 10 }, // Quantity
+      { wch: 12 }, // Issued By
+      { wch: 12 }  // Date
+    ];
+
+    XLSX.writeFile(wb, `stock-out-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Exported to Excel successfully');
+  };
+
   const departments = [...new Set(MOCK_STAFF.map(s => s.department))];
 
   return (
@@ -120,13 +154,22 @@ const StockOut = () => {
           <h1 className="text-2xl font-bold text-gray-900">Stock Out</h1>
           <p className="text-gray-500">Issue items to staff</p>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <FiPlus className="w-5 h-5" />
-          <span>Issue Item</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FiDownload className="w-5 h-5" />
+            <span>Export</span>
+          </button>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FiPlus className="w-5 h-5" />
+            <span>Issue Item</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
