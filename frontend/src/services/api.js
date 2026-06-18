@@ -77,3 +77,39 @@ export const updateUserStatus = async (id, status) => {
   });
   return response.json();
 };
+
+// Departments API
+export const getDepartments = async () => {
+  const response = await fetch(`${API_URL}/departments`);
+  return response.json();
+};
+
+export const getDepartmentById = async (id) => {
+  const response = await fetch(`${API_URL}/departments/${id}`);
+  return response.json();
+};
+
+export const createDepartment = async (data) => {
+  const response = await fetch(`${API_URL}/departments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+};
+
+export const updateDepartment = async (id, data) => {
+  const response = await fetch(`${API_URL}/departments/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+};
+
+export const deleteDepartment = async (id) => {
+  const response = await fetch(`${API_URL}/departments/${id}`, {
+    method: 'DELETE',
+  });
+  return response.json();
+};

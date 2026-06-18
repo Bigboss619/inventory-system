@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FiUser, FiMail, FiPhone, FiLock, FiSettings, FiBell, FiDatabase, FiFileText, FiClock, FiSave, FiPlus, FiEdit2, FiTrash2, FiSearch, FiCheck, FiX, FiAlertTriangle, FiUpload } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiLock, FiSettings, FiBell, FiDatabase, FiFileText, FiClock, FiSave, FiPlus, FiEdit2, FiTrash2, FiSearch, FiCheck, FiX, FiAlertTriangle, FiUpload, FiUsers, FiBriefcase } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { getUsers, createUser, updateUser, deleteUser, updateUserStatus } from '../services/api';
+import { getUsers, createUser, updateUser, deleteUser, updateUserStatus, getDepartments, createDepartment, updateDepartment, deleteDepartment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 // Tab components
 const TABS = [
-  { id: 'profile', label: 'Profile Settings', icon: FiUser },
+  { id: 'departments', label: 'Departments', icon: FiBriefcase },
   { id: 'users', label: 'User & Roles', icon: FiUser },
   { id: 'system', label: 'System Config', icon: FiSettings },
   { id: 'notifications', label: 'Notifications', icon: FiBell },
@@ -27,7 +27,7 @@ const MOCK_LOGS = [
 ];
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('departments');
 
   return (
     <div className="space-y-6">
@@ -57,7 +57,7 @@ const Settings = () => {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'profile' && <ProfileSettings />}
+      {activeTab === 'departments' && <DepartmentSettings />}
       {activeTab === 'users' && <UserRolesSettings />}
       {activeTab === 'system' && <SystemConfigSettings />}
       {activeTab === 'notifications' && <NotificationSettings />}
@@ -69,50 +69,182 @@ const Settings = () => {
   );
 };
 
-// 1. Profile Settings
-const ProfileSettings = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ firstName: 'John', lastName: 'Doe', email: 'john@company.com', phone: '+234 801 234 5678' });
+// 1. Department Settings
+const DepartmentSettings = () => {
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState(null);
+  const [formData, setFormData] = useState({ name: '', description: '' });
+
+  const fetchDepartments = async () => {
+    try {
+      const data = await getDepartments();
+      setDepartments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error('Failed to fetch departments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const filteredDepartments = departments.filter(d =>
+    d.name?.toLowerCase().includes(search.toLowerCase()) ||
+    d.description?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleOpenModal = (department = null) => {
+    if (department) {
+      setEditingDepartment(department);
+      setFormData({
+        name: department.name,
+        description: department.description || ''
+      });
+    } else {
+      setEditingDepartment(null);
+      setFormData({ name: '', description: '' });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingDepartment(null);
+    setFormData({ name: '', description: '' });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingDepartment) {
+        await updateDepartment(editingDepartment.id, formData);
+        toast.success('Department updated successfully');
+      } else {
+        await createDepartment(formData);
+        toast.success('Department created successfully');
+      }
+      handleCloseModal();
+      fetchDepartments();
+    } catch (error) {
+      toast.error(error.message || 'Failed to save department');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this department?')) {
+      try {
+        await deleteDepartment(id);
+        toast.success('Department deleted successfully');
+        fetchDepartments();
+      } catch (error) {
+        toast.error(error.message || 'Failed to delete department');
+      }
+    }
+  };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Profile Settings</h2>
-        <button onClick={() => setIsEditing(!isEditing)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm">
-          <FiEdit2 className="w-4 h-4" /> {isEditing ? 'Cancel' : 'Edit'}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-          <input type="text" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} disabled={!isEditing} className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-50" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-          <input type="text" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} disabled={!isEditing} className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-50" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} disabled={!isEditing} className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-50" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} disabled={!isEditing} className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-50" />
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-lg font-semibold">Departments</h2>
+        <div className="flex gap-3">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" placeholder="Search departments..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm w-64" />
+          </div>
+          <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"><FiPlus className="w-4 h-4" /> Add Department</button>
         </div>
       </div>
 
-      {isEditing && <button onClick={() => { setIsEditing(false); toast.success('Profile updated'); }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg"><FiSave className="w-4 h-4" /> Save</button>}
-
-      <div className="border-t pt-6">
-        <h3 className="text-md font-semibold mb-4 flex items-center gap-2"><FiLock className="w-5 h-5" /> Change Password</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input type="password" placeholder="Current Password" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-          <input type="password" placeholder="New Password" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-          <input type="password" placeholder="Confirm Password" className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+      {loading ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-        <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">Update Password</button>
-      </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Description</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Created</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filteredDepartments.map(department => (
+                <tr key={department.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium">{department.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{department.description || '-'}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${department.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {department.status || 'Active'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{department.created_at ? new Date(department.created_at).toLocaleDateString() : '-'}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button onClick={() => handleOpenModal(department)} className="p-1 text-gray-500 hover:text-blue-600"><FiEdit2 className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(department.id)} className="p-1 text-gray-500 hover:text-red-600"><FiTrash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredDepartments.length === 0 && (
+            <div className="text-center p-8 text-gray-500">No departments found</div>
+          )}
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">{editingDepartment ? 'Edit Department' : 'Add Department'}</h3>
+              <button onClick={handleCloseModal} className="p-1 hover:bg-gray-100 rounded"><FiX className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Department Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="e.g., Operations, Finance, IT"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="Brief description of the department"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                  {editingDepartment ? 'Update' : 'Create'}
+                </button>
+                <button type="button" onClick={handleCloseModal} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
