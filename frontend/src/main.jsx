@@ -8,6 +8,11 @@ import App from './App.jsx'
 // Pages
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Items = lazy(() => import('./pages/Items'));
+const StockIn = lazy(() => import('./pages/StockIn'));
+const StockOut = lazy(() => import('./pages/StockOut'));
+const Staff = lazy(() => import('./pages/Staff'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -25,6 +30,41 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/dashboard', element: <Dashboard /> }
+        ]
+      },
+      {
+        path: '/inventory/categories',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/inventory/categories', element: <Categories /> }
+        ]
+      },
+      {
+        path: '/inventory/items',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/inventory/items', element: <Items /> }
+        ]
+      },
+      {
+        path: '/inventory/stock-in',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/inventory/stock-in', element: <StockIn /> }
+        ]
+      },
+      {
+        path: '/inventory/stock-out',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/inventory/stock-out', element: <StockOut /> }
+        ]
+      },
+      {
+        path: '/inventory/staff',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/inventory/staff', element: <Staff /> }
         ]
       }
     ]
