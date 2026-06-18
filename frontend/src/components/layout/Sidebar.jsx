@@ -21,6 +21,7 @@ import {
   FiLogOut
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { MENU_BY_ROLE, ROLES } from '../../config/permissions';
 
 // Menu structure
 const MENU_ITEMS = [
@@ -62,7 +63,41 @@ const MENU_ITEMS = [
 const Sidebar = ({ isOpen, onClose }) => {
   const [openMenus, setOpenMenus] = useState({});
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  // Get allowed menus based on user role
+  const getAllowedMenus = () => {
+    if (!user) return [];
+
+    const roleConfig = MENU_BY_ROLE[user.role];
+
+    // Super Admin sees all menus
+    if (roleConfig === null) {
+      return MENU_ITEMS;
+    }
+
+    // Filter menus by role configuration
+    return MENU_ITEMS.filter(item => {
+      // Always allow Dashboard, Profile, Settings, Logout
+      if (item.title === 'Dashboard' || item.path === '/profile' || item.path === '/settings') {
+        return true;
+      }
+
+      // Check if this menu/section is allowed
+      if (item.title && roleConfig[item.title]) {
+        // For parent menus, filter children
+        if (item.children && Array.isArray(roleConfig[item.title])) {
+          item.allowedChildren = roleConfig[item.title];
+          return true;
+        }
+        return roleConfig[item.title] !== undefined;
+      }
+
+      return false;
+    });
+  };
+
+  const allowedMenus = getAllowedMenus();
 
   const toggleMenu = (title) => {
     setOpenMenus(prev => ({
@@ -114,7 +149,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Menu */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {MENU_ITEMS.map((item) => (
+          {allowedMenus.map((item) => (
             <div key={item.title}>
               {item.children ? (
                 // Parent menu with children
@@ -134,10 +169,18 @@ const Sidebar = ({ isOpen, onClose }) => {
                     )}
                   </button>
 
-                  {/* Submenu */}
+                  {/* Submenu - filter children by role */}
                   {openMenus[item.title] && (
                     <div className="ml-4 pl-4 border-l border-blue-500 space-y-1">
-                      {item.children.map((child) => (
+                      {item.children
+                        .filter(child => {
+                          // If allowedChildren is set, only show those
+                          if (item.allowedChildren) {
+                            return item.allowedChildren.includes(child.label);
+                          }
+                          return true;
+                        })
+                        .map((child) => (
                         <NavLink
                           key={child.path}
                           to={child.path}
