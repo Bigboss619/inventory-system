@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   FiBox,
   FiLayers,
@@ -17,8 +17,10 @@ import {
   FiTrendingDown,
   FiUserCheck,
   FiHome,
-  FiTruck
+  FiTruck,
+  FiLogOut
 } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
 
 // Menu structure
 const MENU_ITEMS = [
@@ -59,12 +61,19 @@ const MENU_ITEMS = [
 
 const Sidebar = ({ isOpen, onClose }) => {
   const [openMenus, setOpenMenus] = useState({});
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const toggleMenu = (title) => {
     setOpenMenus(prev => ({
       ...prev,
       [title]: !prev[title]
     }));
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   return (
@@ -200,6 +209,14 @@ const Sidebar = ({ isOpen, onClose }) => {
             <FiSettings className="w-5 h-5" />
             <span>Settings</span>
           </NavLink>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-blue-100 hover:bg-blue-600"
+          >
+            <FiLogOut className="w-5 h-5" />
+            <span>Logout</span>
+          </button>
         </div>
       </aside>
     </>

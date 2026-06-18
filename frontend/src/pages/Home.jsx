@@ -1,12 +1,21 @@
-import React from 'react'
-import LoginPage from '../components/forms/LoginPage'
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import LoginPage from '../components/forms/LoginPage';
+import { useAuth } from '../context/AuthContext';
 
 const Home = () => {
-  const handleLogin = (userData) => {
-    console.log('Logged in:', userData)
-  }
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-  return <LoginPage onLogin={handleLogin} />
-}
+  const handleLogin = async (userData) => {
+    const result = await login(userData.email, userData.password);
+    if (result.success) {
+      navigate('/dashboard');
+    }
+    return result;
+  };
 
-export default Home
+  return <LoginPage onLogin={handleLogin} />;
+};
+
+export default Home;

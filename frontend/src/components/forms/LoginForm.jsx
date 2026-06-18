@@ -5,12 +5,6 @@ import toast from 'react-hot-toast';
 import LoginInput from './LoginInput';
 import LoginButton from './LoginButton';
 
-// Mock user data
-const MOCK_USER = {
-  email: 'admin@inventory.com',
-  password: 'admin123'
-};
-
 const LoginForm = ({ onLogin }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -31,7 +25,6 @@ const LoginForm = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!formData.email || !formData.password) {
       toast.error('Please enter both email and password');
       return;
@@ -39,19 +32,19 @@ const LoginForm = ({ onLogin }) => {
 
     setLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Validate against mock data
-    if (formData.email === MOCK_USER.email && formData.password === MOCK_USER.password) {
-      toast.success('Login successful!');
-      onLogin?.(formData);
-      navigate('/dashboard');
-    } else {
-      toast.error('Invalid email or password');
+    try {
+      const result = await onLogin?.(formData);
+      if (result?.success) {
+        toast.success('Login successful!');
+        navigate('/dashboard');
+      } else {
+        toast.error(result?.message || 'Invalid email or password');
+      }
+    } catch (error) {
+      toast.error('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
