@@ -18,6 +18,7 @@ const VehicleRecords = lazy(() => import('./pages/VehicleRecords'));
 const BulkUpload = lazy(() => import('./pages/BulkUpload'));
 const DocumentReminder = lazy(() => import('./pages/DocumentReminder'));
 const MaintenanceTracker = lazy(() => import('./pages/MaintenanceTracker'));
+const VehicleDocuments = lazy(() => import('./pages/VehicleDocuments'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -84,6 +85,13 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/documents/vehicles', element: <VehicleRecords /> }
+        ]
+      },
+      {
+        path: '/documents/vehicles/:vehicleId/documents',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/documents/vehicles/:vehicleId/documents', element: <VehicleDocuments /> }
         ]
       },
       {

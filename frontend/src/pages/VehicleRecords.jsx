@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiTruck, FiUser, FiCalendar, FiDownload, FiX } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiTruck, FiUser, FiCalendar, FiDownload, FiX, FiFile } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { FiLoader } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
@@ -17,6 +18,7 @@ const MOCK_VEHICLES = [
 const STATUS_OPTIONS = ['All', 'Active', 'Maintenance', 'Inactive'];
 
 const VehicleRecords = () => {
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState(MOCK_VEHICLES);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
@@ -48,6 +50,10 @@ const VehicleRecords = () => {
   const handleEditVehicle = (vehicle) => {
     setEditingVehicle(vehicle);
     setModalOpen(true);
+  };
+
+  const handleViewDocuments = (vehicle) => {
+    navigate(`/documents/vehicles/${vehicle.id}/documents`);
   };
 
   const handleDeleteVehicle = (id) => {
@@ -244,6 +250,13 @@ const VehicleRecords = () => {
                     <td className="px-4 py-4 text-sm text-gray-700">{v.insuranceExpiry}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewDocuments(v)}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View Documents"
+                        >
+                          <FiFile className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleEditVehicle(v)}
                           className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
