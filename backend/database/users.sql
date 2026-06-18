@@ -8,11 +8,12 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     address TEXT,
     role ENUM('Super Admin', 'Inventory Officer', 'Document Officer', 'Staff') DEFAULT 'Staff',
-    department VARCHAR(100),
+    department_id INT,
     status ENUM('Active', 'Inactive') DEFAULT 'Active',
     profile_image VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (department_id) REFERENCES departments(id)
 );
 
 -- Insert default admin user (password: admin123)

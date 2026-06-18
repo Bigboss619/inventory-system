@@ -252,11 +252,12 @@ const DepartmentSettings = () => {
 // 2. User & Roles
 const UserRolesSettings = () => {
   const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'Staff' });
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff' });
   const { user: currentUser } = useAuth();
 
   const fetchUsers = async () => {
@@ -272,7 +273,23 @@ const UserRolesSettings = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchDepartments();
   }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const data = await getDepartments();
+      setDepartments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch departments');
+    }
+  };
+
+  const getDepartmentName = (departmentId) => {
+    if (!departmentId) return '-';
+    const dept = departments.find(d => d.id === departmentId || d.id === parseInt(departmentId));
+    return dept ? dept.name : '-';
+  };
 
   const filteredUsers = users.filter(u =>
     (`${u.first_name} ${u.last_name}`).toLowerCase().includes(search.toLowerCase()) ||
@@ -287,12 +304,12 @@ const UserRolesSettings = () => {
         lastName: user.last_name,
         email: user.email,
         password: '',
-        department: user.department || '',
+        departmentId: user.department_id || user.department_id || '',
         role: user.role
       });
     } else {
       setEditingUser(null);
-      setFormData({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'Staff' });
+      setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff' });
     }
     setShowModal(true);
   };
@@ -300,17 +317,21 @@ const UserRolesSettings = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'Staff' });
+    setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff' });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const userData = {
+        ...formData,
+        departmentId: formData.departmentId ? parseInt(formData.departmentId) : null
+      };
       if (editingUser) {
-        await updateUser(editingUser.id, formData);
+        await updateUser(editingUser.id, userData);
         toast.success('User updated successfully');
       } else {
-        await createUser(formData);
+        await createUser(userData);
         toast.success('User created successfully');
       }
       handleCloseModal();
@@ -397,7 +418,7 @@ const UserRolesSettings = () => {
                       {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-sm">{user.department || '-'}</td>
+                  <td className="px-4 py-3 text-sm">{getDepartmentName(user.department_id)}</td>
                   <td className="px-4 py-3 text-sm">
                     <button
                       onClick={() => handleStatusToggle(user)}
@@ -485,12 +506,16 @@ const UserRolesSettings = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                  <input
-                    type="text"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  <select
+                    value={formData.departmentId}
+                    onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="flex gap-3 pt-2">

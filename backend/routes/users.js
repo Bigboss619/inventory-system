@@ -34,7 +34,7 @@ router.get("/:id", (req, res) => {
 
 // Create new user
 router.post("/", async (req, res) => {
-    const { firstName, lastName, email, password, phone, address, role, department } = req.body;
+    const { firstName, lastName, email, password, phone, address, role, departmentId } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ message: "First name, last name, email, and password are required" });
@@ -43,9 +43,9 @@ router.post("/", async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const sql = "INSERT INTO users (first_name, last_name, email, password, phone, address, role, department) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        const sql = "INSERT INTO users (first_name, last_name, email, password, phone, address, role, department_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        db.query(sql, [firstName, lastName, email, hashedPassword, phone, address, role || 'Staff', department], (err, results) => {
+        db.query(sql, [firstName, lastName, email, hashedPassword, phone, address, role || 'Staff', departmentId || null], (err, results) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return res.status(400).json({ message: "Email already exists" });
@@ -62,7 +62,7 @@ router.post("/", async (req, res) => {
 // Update user
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
-    const { firstName, lastName, email, password, phone, address, role, department, status } = req.body;
+    const { firstName, lastName, email, password, phone, address, role, departmentId, status } = req.body;
 
     // Check if user exists
     const checkSql = "SELECT id FROM users WHERE id = ?";
@@ -107,9 +107,9 @@ router.put("/:id", async (req, res) => {
             updateFields.push("role = ?");
             updateValues.push(role);
         }
-        if (department !== undefined) {
-            updateFields.push("department = ?");
-            updateValues.push(department);
+        if (departmentId !== undefined) {
+            updateFields.push("department_id = ?");
+            updateValues.push(departmentId || null);
         }
         if (status) {
             updateFields.push("status = ?");
