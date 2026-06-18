@@ -29,6 +29,7 @@ const MENU_ITEMS = [
       { label: 'Stock In', path: '/inventory/stock-in', icon: FiTrendingUp },
       { label: 'Stock Out', path: '/inventory/stock-out', icon: FiTrendingDown },
       { label: 'Staff', path: '/inventory/staff', icon: FiUserCheck },
+      { label: 'History', path: '/inventory/history', icon: FiFileText },
     ]
   },
   {

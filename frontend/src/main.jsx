@@ -13,6 +13,7 @@ const Items = lazy(() => import('./pages/Items'));
 const StockIn = lazy(() => import('./pages/StockIn'));
 const StockOut = lazy(() => import('./pages/StockOut'));
 const Staff = lazy(() => import('./pages/Staff'));
+const History = lazy(() => import('./pages/History'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -65,6 +66,13 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/inventory/staff', element: <Staff /> }
+        ]
+      },
+      {
+        path: '/inventory/history',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/inventory/history', element: <History /> }
         ]
       }
     ]
