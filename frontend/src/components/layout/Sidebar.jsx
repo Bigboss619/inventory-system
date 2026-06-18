@@ -1,28 +1,66 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  FiHome,
   FiBox,
   FiLayers,
-  FiShoppingCart,
-  FiUsers,
   FiFileText,
-  FiBarChart2,
+  FiUsers,
+  FiUser,
+  FiChevronDown,
+  FiChevronRight,
   FiSettings,
-  FiX
+  FiX,
+  FiClipboard,
+  FiFile,
+  FiBell,
+  FiTrendingUp,
+  FiTrendingDown,
+  FiUserCheck
 } from 'react-icons/fi';
 
-const menuItems = [
-  { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
-  { path: '/inventory', icon: FiBox, label: 'Inventory' },
-  { path: '/stock', icon: FiLayers, label: 'Stock' },
-  { path: '/orders', icon: FiShoppingCart, label: 'Orders' },
-  { path: '/users', icon: FiUsers, label: 'Users' },
-  { path: '/reports', icon: FiFileText, label: 'Reports' },
-  { path: '/analytics', icon: FiBarChart2, label: 'Analytics' },
+// Menu structure
+const MENU_ITEMS = [
+  {
+    title: 'Inventory Management',
+    icon: FiBox,
+    children: [
+      { label: 'Categories', path: '/inventory/categories', icon: FiLayers },
+      { label: 'Items', path: '/inventory/items', icon: FiBox },
+      { label: 'Stock In', path: '/inventory/stock-in', icon: FiTrendingUp },
+      { label: 'Stock Out', path: '/inventory/stock-out', icon: FiTrendingDown },
+      { label: 'Staff', path: '/inventory/staff', icon: FiUserCheck },
+    ]
+  },
+  {
+    title: 'Document Management',
+    icon: FiFileText,
+    children: [
+      { label: 'Categories', path: '/documents/categories', icon: FiLayers },
+      { label: 'Documents', path: '/documents/list', icon: FiFile },
+      { label: 'Reminders', path: '/documents/reminders', icon: FiBell },
+    ]
+  },
+  {
+    title: 'Reports',
+    icon: FiClipboard,
+    children: [
+      { label: 'Inventory Reports', path: '/reports/inventory', icon: FiBox },
+      { label: 'Document Reports', path: '/reports/documents', icon: FiFileText },
+    ]
+  },
+  { title: 'User Management', icon: FiUsers, path: '/users' },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
+  const [openMenus, setOpenMenus] = useState({});
+
+  const toggleMenu = (title) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [title]: !prev[title]
+    }));
+  };
+
   return (
     <>
       {/* Overlay for mobile */}
@@ -60,27 +98,87 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Menu */}
         <nav className="p-4 space-y-1">
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? 'bg-white text-green-700 font-medium'
-                    : 'text-green-100 hover:bg-green-600'
-                }`
-              }
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
-            </NavLink>
+          {MENU_ITEMS.map((item) => (
+            <div key={item.title}>
+              {item.children ? (
+                // Parent menu with children
+                <>
+                  <button
+                    onClick={() => toggleMenu(item.title)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-green-100 hover:bg-green-600 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.title}</span>
+                    </div>
+                    {openMenus[item.title] ? (
+                      <FiChevronDown className="w-4 h-4" />
+                    ) : (
+                      <FiChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {/* Submenu */}
+                  {openMenus[item.title] && (
+                    <div className="ml-4 pl-4 border-l border-green-500 space-y-1">
+                      {item.children.map((child) => (
+                        <NavLink
+                          key={child.path}
+                          to={child.path}
+                          onClick={onClose}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 text-sm ${
+                              isActive
+                                ? 'bg-white text-green-700 font-medium'
+                                : 'text-green-100 hover:bg-green-600'
+                            }`
+                          }
+                        >
+                          <child.icon className="w-4 h-4" />
+                          <span>{child.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Single menu item
+                <NavLink
+                  to={item.path}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? 'bg-white text-green-700 font-medium'
+                        : 'text-green-100 hover:bg-green-600'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.title}</span>
+                </NavLink>
+              )}
+            </div>
           ))}
         </nav>
 
-        {/* Settings at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-green-600">
+        {/* Bottom section */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-green-600 space-y-1">
+          <NavLink
+            to="/profile"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                isActive
+                  ? 'bg-white text-green-700 font-medium'
+                  : 'text-green-100 hover:bg-green-600'
+              }`
+            }
+          >
+            <FiUser className="w-5 h-5" />
+            <span>Profile</span>
+          </NavLink>
+
           <NavLink
             to="/settings"
             onClick={onClose}
