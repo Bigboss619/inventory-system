@@ -15,11 +15,13 @@ import {
   FiBell,
   FiTrendingUp,
   FiTrendingDown,
-  FiUserCheck
+  FiUserCheck,
+  FiHome
 } from 'react-icons/fi';
 
 // Menu structure
 const MENU_ITEMS = [
+  { title: 'Dashboard', icon: FiHome, path: '/dashboard' },
   {
     title: 'Inventory Management',
     icon: FiBox,
