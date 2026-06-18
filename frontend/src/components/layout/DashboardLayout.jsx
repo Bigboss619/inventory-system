@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
-// Mock user data
-const MOCK_USER = {
-  name: 'Admin User',
-  role: 'Administrator',
-  email: 'admin@inventory.com'
-};
-
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => !prev);
@@ -19,6 +16,12 @@ const DashboardLayout = () => {
 
   const closeSidebar = () => {
     setSidebarOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Logged out successfully');
+    navigate('/');
   };
 
   return (
@@ -33,7 +36,7 @@ const DashboardLayout = () => {
 
       {/* Main content with left padding for desktop sidebar */}
       <div className="lg:pl-64">
-        <Header onToggleSidebar={toggleSidebar} user={MOCK_USER} />
+        <Header onToggleSidebar={toggleSidebar} user={user} onLogout={handleLogout} />
         <main className="p-4 lg:p-6">
           <Outlet />
         </main>
