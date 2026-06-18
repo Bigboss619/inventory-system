@@ -4,6 +4,7 @@ require("dotenv").config({ path: ".env.development" });
 
 const db = require("./config/config");
 const authRoutes = require("./routes/auth");
+const userRoutes = require("./routes/users");
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
     res.send("Inventory Management API is running...");

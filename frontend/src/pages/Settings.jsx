@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiUser, FiMail, FiPhone, FiLock, FiSettings, FiBell, FiDatabase, FiFileText, FiClock, FiSave, FiPlus, FiEdit2, FiTrash2, FiSearch, FiCheck, FiX, FiAlertTriangle, FiUpload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { getUsers, createUser, updateUser, deleteUser, updateUserStatus } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 // Tab components
 const TABS = [
@@ -14,14 +16,7 @@ const TABS = [
   { id: 'audit', label: 'Audit Logs', icon: FiClock },
 ];
 
-const ROLES = ['Super Admin', 'Inventory Officer', 'Document Officer'];
-
-const MOCK_USERS = [
-  { id: 1, name: 'John Doe', email: 'john@company.com', role: 'Super Admin', status: 'Active' },
-  { id: 2, name: 'Sarah Smith', email: 'sarah@company.com', role: 'Inventory Officer', status: 'Active' },
-  { id: 3, name: 'Mike Brown', email: 'mike@company.com', role: 'Document Officer', status: 'Active' },
-  { id: 4, name: 'Emily Davis', email: 'emily@company.com', role: 'Inventory Officer', status: 'Disabled' },
-];
+const ROLES = ['Super Admin', 'Inventory Officer', 'Document Officer', 'Staff'];
 
 const MOCK_LOGS = [
   { id: 1, user: 'John Doe', action: 'Updated document settings', module: 'System', date: '2026-06-18 10:30', ip: '192.168.1.100' },
@@ -124,10 +119,107 @@ const ProfileSettings = () => {
 
 // 2. User & Roles
 const UserRolesSettings = () => {
-  const [users, setUsers] = useState(MOCK_USERS);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'Staff' });
+  const { user: currentUser } = useAuth();
 
-  const filteredUsers = users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()));
+  const fetchUsers = async () => {
+    try {
+      const data = await getUsers();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error('Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter(u =>
+    (`${u.first_name} ${u.last_name}`).toLowerCase().includes(search.toLowerCase()) ||
+    u.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleOpenModal = (user = null) => {
+    if (user) {
+      setEditingUser(user);
+      setFormData({
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        password: '',
+        department: user.department || '',
+        role: user.role
+      });
+    } else {
+      setEditingUser(null);
+      setFormData({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'Staff' });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingUser(null);
+    setFormData({ firstName: '', lastName: '', email: '', password: '', department: '', role: 'Staff' });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingUser) {
+        await updateUser(editingUser.id, formData);
+        toast.success('User updated successfully');
+      } else {
+        await createUser(formData);
+        toast.success('User created successfully');
+      }
+      handleCloseModal();
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.message || 'Failed to save user');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await deleteUser(id);
+        toast.success('User deleted successfully');
+        fetchUsers();
+      } catch (error) {
+        toast.error(error.message || 'Failed to delete user');
+      }
+    }
+  };
+
+  const handleStatusToggle = async (user) => {
+    const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      await updateUserStatus(user.id, newStatus);
+      toast.success(`User ${newStatus === 'Active' ? 'activated' : 'deactivated'}`);
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.message || 'Failed to update status');
+    }
+  };
+
+  const handleRoleChange = async (user, newRole) => {
+    try {
+      await updateUser(user.id, { role: newRole });
+      toast.success('Role updated');
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.message || 'Failed to update role');
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -138,44 +230,149 @@ const UserRolesSettings = () => {
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm w-64" />
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"><FiPlus className="w-4 h-4" /> Add User</button>
+          <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"><FiPlus className="w-4 h-4" /> Add User</button>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Email</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Role</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {filteredUsers.map(user => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm font-medium">{user.name}</td>
-                <td className="px-4 py-3 text-sm">{user.email}</td>
-                <td className="px-4 py-3 text-sm">
-                  <select defaultValue={user.role} className="text-sm border border-gray-300 rounded px-2 py-1">
-                    {ROLES.map(r => <option key={r}>{r}</option>)}
-                  </select>
-                </td>
-                <td className="px-4 py-3 text-sm">
-                  <span className={`px-2 py-1 rounded-full text-xs ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{user.status}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button className="p-1 text-gray-500 hover:text-blue-600"><FiEdit2 className="w-4 h-4" /></button>
-                    <button className="p-1 text-gray-500 hover:text-red-600"><FiTrash2 className="w-4 h-4" /></button>
-                  </div>
-                </td>
+
+      {loading ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Role</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Department</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y">
+              {filteredUsers.map(user => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium">{user.first_name} {user.last_name}</td>
+                  <td className="px-4 py-3 text-sm">{user.email}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleRoleChange(user, e.target.value)}
+                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                    >
+                      {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 text-sm">{user.department || '-'}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <button
+                      onClick={() => handleStatusToggle(user)}
+                      className={`px-2 py-1 rounded-full text-xs cursor-pointer ${user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                    >
+                      {user.status || 'Active'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button onClick={() => handleOpenModal(user)} className="p-1 text-gray-500 hover:text-blue-600"><FiEdit2 className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(user.id)} className="p-1 text-gray-500 hover:text-red-600"><FiTrash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">{editingUser ? 'Edit User' : 'Add User'}</h3>
+              <button onClick={handleCloseModal} className="p-1 hover:bg-gray-100 rounded"><FiX className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password {editingUser ? '(leave blank to keep current)' : '*'}
+                </label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required={!editingUser}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                  {editingUser ? 'Update' : 'Create'}
+                </button>
+                <button type="button" onClick={handleCloseModal} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -32,3 +32,48 @@ export const setupAdmin = async () => {
   });
   return response.json();
 };
+
+// Users API
+export const getUsers = async () => {
+  const response = await fetch(`${API_URL}/users`);
+  return response.json();
+};
+
+export const getUserById = async (id) => {
+  const response = await fetch(`${API_URL}/users/${id}`);
+  return response.json();
+};
+
+export const createUser = async (userData) => {
+  const response = await fetch(`${API_URL}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  });
+  return response.json();
+};
+
+export const updateUser = async (id, userData) => {
+  const response = await fetch(`${API_URL}/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  });
+  return response.json();
+};
+
+export const deleteUser = async (id) => {
+  const response = await fetch(`${API_URL}/users/${id}`, {
+    method: 'DELETE',
+  });
+  return response.json();
+};
+
+export const updateUserStatus = async (id, status) => {
+  const response = await fetch(`${API_URL}/users/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  return response.json();
+};
