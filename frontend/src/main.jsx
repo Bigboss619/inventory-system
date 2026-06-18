@@ -23,6 +23,7 @@ const AllDocuments = lazy(() => import('./pages/AllDocuments'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 const InventoryReport = lazy(() => import('./pages/InventoryReport'));
+const DocumentReport = lazy(() => import('./pages/DocumentReport'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -145,6 +146,13 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/reports/inventory', element: <InventoryReport /> }
+        ]
+      },
+      {
+        path: '/reports/documents',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/reports/documents', element: <DocumentReport /> }
         ]
       }
     ]
