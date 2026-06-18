@@ -1,10 +1,11 @@
 const express = require("express");
+const bcrypt = require("bcrypt");
 const db = require("../config/config");
 
 const router = express.Router();
 
 // Login
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -22,10 +23,7 @@ router.post("/login", (req, res) => {
         }
 
         const user = results[0];
-
-        // For demo purposes, plain text comparison
-        // In production, use: const isMatch = await bcrypt.compare(password, user.password);
-        const isMatch = password === user.password;
+        const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid credentials" });
@@ -48,7 +46,7 @@ router.post("/login", (req, res) => {
     });
 });
 
-// Register (for creating first admin)
+// Register
 router.post("/register", async (req, res) => {
     const { firstName, lastName, email, password, phone, address, role, department } = req.body;
 
@@ -56,10 +54,7 @@ router.post("/register", async (req, res) => {
         return res.status(400).json({ message: "Required fields are missing" });
     }
 
-    // Hash password
-    // const hashedPassword = await bcrypt.hash(password, 10);
-    // For demo, using plain text: In production, use hashedPassword
-    const hashedPassword = password;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const sql = "INSERT INTO users (first_name, last_name, email, password, phone, address, role, department) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     db.query(sql, [firstName, lastName, email, hashedPassword, phone, address, role || 'Staff', department], (err, results) => {
@@ -100,6 +95,22 @@ router.get("/me", (req, res) => {
             department: user.department,
             profileImage: user.profile_image
         });
+    });
+});
+
+// Setup admin user (run once)
+router.post("/setup", async (req, res) => {
+    const hashedPassword = await bcrypt.hash("admin123", 10);
+
+    const sql = `INSERT INTO users (first_name, last_name, email, password, phone, address, role, department)
+                VALUES ('Admin', 'User', 'admin@inventory.com', ?, '+234 801 234 5678', '123 Main Street, Lagos, Nigeria', 'Super Admin', 'Operations')
+                ON DUPLICATE KEY UPDATE password = ?`;
+
+    db.query(sql, [hashedPassword, hashedPassword], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Setup error", error: err });
+        }
+        res.json({ message: "Admin user created/updated successfully" });
     });
 });
 

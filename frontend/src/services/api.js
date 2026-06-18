@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const login = async (email, password) => {
   const response = await fetch(`${API_URL}/auth/login`, {
@@ -21,6 +21,14 @@ export const register = async (userData) => {
 export const getCurrentUser = async (userId) => {
   const response = await fetch(`${API_URL}/auth/me`, {
     headers: { 'user-id': userId },
+  });
+  return response.json();
+};
+
+export const setupAdmin = async () => {
+  const response = await fetch(`${API_URL}/auth/setup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
   });
   return response.json();
 };
