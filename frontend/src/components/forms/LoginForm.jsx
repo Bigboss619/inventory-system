@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiMail, FiLock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import LoginInput from './LoginInput';
@@ -11,6 +12,7 @@ const MOCK_USER = {
 };
 
 const LoginForm = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -44,6 +46,7 @@ const LoginForm = ({ onLogin }) => {
     if (formData.email === MOCK_USER.email && formData.password === MOCK_USER.password) {
       toast.success('Login successful!');
       onLogin?.(formData);
+      navigate('/dashboard');
     } else {
       toast.error('Invalid email or password');
     }

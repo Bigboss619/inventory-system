@@ -7,6 +7,10 @@ import App from './App.jsx'
 
 // Pages
 const Home = lazy(() => import('./pages/Home'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+// Layout
+const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
 
 
 const router = createBrowserRouter([
@@ -15,7 +19,14 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: <ErrorBoundary />,
     children: [
-      { path: '/', element: <Home /> }
+      { path: '/', element: <Home /> },
+      {
+        path: '/dashboard',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/dashboard', element: <Dashboard /> }
+        ]
+      }
     ]
   }
 ]);
