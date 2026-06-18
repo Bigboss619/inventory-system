@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Get all users
 router.get("/", (req, res) => {
-    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department, status, profile_image, created_at, updated_at FROM users ORDER BY id DESC";
+    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department_id, status, profile_image, created_at, updated_at FROM users ORDER BY id DESC";
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -19,7 +19,7 @@ router.get("/", (req, res) => {
 // Get single user by ID
 router.get("/:id", (req, res) => {
     const { id } = req.params;
-    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department, status, profile_image, created_at, updated_at FROM users WHERE id = ?";
+    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department_id, status, profile_image, created_at, updated_at FROM users WHERE id = ?";
 
     db.query(sql, [id], (err, results) => {
         if (err) {
