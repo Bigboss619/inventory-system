@@ -20,6 +20,7 @@ const DocumentReminder = lazy(() => import('./pages/DocumentReminder'));
 const MaintenanceTracker = lazy(() => import('./pages/MaintenanceTracker'));
 const VehicleDocuments = lazy(() => import('./pages/VehicleDocuments'));
 const AllDocuments = lazy(() => import('./pages/AllDocuments'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -121,6 +122,13 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/documents/all', element: <AllDocuments /> }
+        ]
+      },
+      {
+        path: '/profile',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/profile', element: <Profile /> }
         ]
       }
     ]
