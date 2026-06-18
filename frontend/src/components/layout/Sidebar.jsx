@@ -16,7 +16,8 @@ import {
   FiTrendingUp,
   FiTrendingDown,
   FiUserCheck,
-  FiHome
+  FiHome,
+  FiTruck
 } from 'react-icons/fi';
 
 // Menu structure
@@ -38,9 +39,10 @@ const MENU_ITEMS = [
     title: 'Document Management',
     icon: FiFileText,
     children: [
-      { label: 'Categories', path: '/documents/categories', icon: FiLayers },
-      { label: 'Documents', path: '/documents/list', icon: FiFile },
+      { label: 'Vehicle Records', path: '/documents/vehicles', icon: FiTruck },
+      { label: 'Bulk Upload', path: '/documents/upload', icon: FiFile },
       { label: 'Reminders', path: '/documents/reminders', icon: FiBell },
+      { label: 'Maintenance', path: '/documents/maintenance', icon: FiClipboard },
     ]
   },
   {

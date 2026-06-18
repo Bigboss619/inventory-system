@@ -14,6 +14,10 @@ const StockIn = lazy(() => import('./pages/StockIn'));
 const StockOut = lazy(() => import('./pages/StockOut'));
 const Staff = lazy(() => import('./pages/Staff'));
 const History = lazy(() => import('./pages/History'));
+const VehicleRecords = lazy(() => import('./pages/VehicleRecords'));
+const BulkUpload = lazy(() => import('./pages/BulkUpload'));
+const DocumentReminder = lazy(() => import('./pages/DocumentReminder'));
+const MaintenanceTracker = lazy(() => import('./pages/MaintenanceTracker'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -73,6 +77,34 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/inventory/history', element: <History /> }
+        ]
+      },
+      {
+        path: '/documents/vehicles',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/documents/vehicles', element: <VehicleRecords /> }
+        ]
+      },
+      {
+        path: '/documents/upload',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/documents/upload', element: <BulkUpload /> }
+        ]
+      },
+      {
+        path: '/documents/reminders',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/documents/reminders', element: <DocumentReminder /> }
+        ]
+      },
+      {
+        path: '/documents/maintenance',
+        element: <DashboardLayout />,
+        children: [
+          { path: '/documents/maintenance', element: <MaintenanceTracker /> }
         ]
       }
     ]
