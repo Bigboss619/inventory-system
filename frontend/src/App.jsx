@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthProvider/AuthProvider';
 import PageLoader from './components/loader/PageLoader';
-import TimeoutModal from './components/TimeoutModal/TimeoutModal';
+import TimeoutWarning from './context/TimeoutWarning/TimeoutWarning';
 import Toast from './components/ui/Toast';
 
 
@@ -16,7 +16,7 @@ function App() {
         <Toast />
         {showLoader && <PageLoader />}
         <Outlet />
-        <TimeoutModal />
+        <TimeoutWarning />
       </AuthProvider>
 
 
