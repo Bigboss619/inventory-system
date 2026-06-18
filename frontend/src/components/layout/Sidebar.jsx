@@ -40,6 +40,7 @@ const MENU_ITEMS = [
     icon: FiFileText,
     children: [
       { label: 'Vehicle Records', path: '/documents/vehicles', icon: FiTruck },
+      { label: 'All Documents', path: '/documents/all', icon: FiFileText },
       { label: 'Bulk Upload', path: '/documents/upload', icon: FiFile },
       { label: 'Reminders', path: '/documents/reminders', icon: FiBell },
       { label: 'Maintenance', path: '/documents/maintenance', icon: FiClipboard },
