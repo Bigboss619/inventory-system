@@ -413,81 +413,83 @@ const DocumentModal = ({ isOpen, onClose, onSave, document, loading }) => {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle *</label>
-            <select
-              value={formData.vehicleId}
-              onChange={(e) => {
-                const selected = vehicleOptions.find(v => v.id === parseInt(e.target.value));
-                setFormData({ ...formData, vehicleId: parseInt(e.target.value), vehicleName: selected.name });
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {vehicleOptions.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle *</label>
+              <select
+                value={formData.vehicleId}
+                onChange={(e) => {
+                  const selected = vehicleOptions.find(v => v.id === parseInt(e.target.value));
+                  setFormData({ ...formData, vehicleId: parseInt(e.target.value), vehicleName: selected.name });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {vehicleOptions.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {typeOptions.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Document Name *</label>
+              <input
+                type="text"
+                value={formData.document}
+                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
+                placeholder="e.g. Vehicle Insurance"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Document Number *</label>
+              <input
+                type="text"
+                value={formData.docNumber}
+                onChange={(e) => setFormData({ ...formData, docNumber: e.target.value })}
+                placeholder="e.g. INS-2026-001"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
+              <input
+                type="date"
+                value={formData.issueDate}
+                onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
+              <input
+                type="date"
+                value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Remind Before (Days)</label>
+              <input
+                type="number"
+                value={formData.reminderDays}
+                onChange={(e) => setFormData({ ...formData, reminderDays: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Document Name *</label>
-            <input
-              type="text"
-              value={formData.document}
-              onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-              placeholder="e.g. Vehicle Insurance"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {typeOptions.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Document Number *</label>
-            <input
-              type="text"
-              value={formData.docNumber}
-              onChange={(e) => setFormData({ ...formData, docNumber: e.target.value })}
-              placeholder="e.g. INS-2026-001"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
-            <input
-              type="date"
-              value={formData.issueDate}
-              onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
-            <input
-              type="date"
-              value={formData.expiryDate}
-              onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Remind Before (Days)</label>
-            <input
-              type="number"
-              value={formData.reminderDays}
-              onChange={(e) => setFormData({ ...formData, reminderDays: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 col-span-2">
             <button
               type="button"
               onClick={onClose}
