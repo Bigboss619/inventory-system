@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiMail, FiLock } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import LoginInput from './LoginInput';
 import LoginButton from './LoginButton';
 
@@ -15,6 +16,7 @@ const LoginForm = ({ onLogin }) => {
     password: '',
     rememberMe: false
   });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -24,16 +26,29 @@ const LoginForm = ({ onLogin }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Basic validation
+    if (!formData.email || !formData.password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+
+    setLoading(true);
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Validate against mock data
     if (formData.email === MOCK_USER.email && formData.password === MOCK_USER.password) {
+      toast.success('Login successful!');
       onLogin?.(formData);
-      alert('Login successful!');
     } else {
-      alert('Invalid email or password. Try: admin@inventory.com / admin123');
+      toast.error('Invalid email or password');
     }
+
+    setLoading(false);
   };
 
   return (
@@ -73,7 +88,7 @@ const LoginForm = ({ onLogin }) => {
         </a>
       </div>
 
-      <LoginButton text="Sign In" />
+      <LoginButton text="Sign In" loading={loading} />
     </form>
   );
 };
