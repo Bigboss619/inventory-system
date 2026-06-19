@@ -25,6 +25,6 @@ CREATE TABLE IF NOT EXISTS stock_out (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items(id),
     FOREIGN KEY (department_id) REFERENCES departments(id),
-    FOREIGN KEY (requested_by) REFERENCES users(id),
+    FOREIGN KEY (requested_by) REFERENCES staff(id),
     FOREIGN KEY (issued_by) REFERENCES users(id)
 );

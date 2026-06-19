@@ -7,7 +7,8 @@ const router = express.Router();
 router.get("/", (req, res) => {
     const sql = `
         SELECT s.id, s.quantity, s.supplier, s.note, s.transaction_date,
-               i.id as item_id, i.name as item_name, i.item_code,
+               s.item_id, s.received_by,
+               i.name as item_name, i.item_code,
                u.name as received_by_name
         FROM stock_in s
         LEFT JOIN items i ON s.item_id = i.id
@@ -17,7 +18,8 @@ router.get("/", (req, res) => {
 
     db.query(sql, (err, results) => {
         if (err) {
-            return res.status(500).json({ message: "Error fetching stock in records", error: err });
+            console.error("StockIn GET Error:", err);
+            return res.status(500).json({ message: "Error fetching stock in records", error: err.message });
         }
         res.json(results);
     });
@@ -52,11 +54,14 @@ router.post("/", (req, res) => {
         return res.status(400).json({ message: "Item and quantity are required" });
     }
 
+    console.log("Creating stock_in with:", { itemId, quantity, supplier, note, receivedBy, transactionDate });
+
     const sql = "INSERT INTO stock_in (item_id, quantity, supplier, note, received_by, transaction_date) VALUES (?, ?, ?, ?, ?, ?)";
 
     db.query(sql, [itemId, quantity, supplier || null, note || null, receivedBy || null, transactionDate || new Date().toISOString().split('T')[0]], (err, results) => {
         if (err) {
-            return res.status(500).json({ message: "Error creating stock in record", error: err });
+            console.error("StockIn POST Error:", err);
+            return res.status(500).json({ message: "Error creating stock in record", error: err.message });
         }
 
         // Update item quantity
