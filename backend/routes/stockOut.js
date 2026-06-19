@@ -52,17 +52,17 @@ router.get("/:id", (req, res) => {
 
 // Create new stock out record
 router.post("/", (req, res) => {
-    const { itemId, quantity, departmentId, requestedBy, note, transactionDate } = req.body;
+    const { itemId, quantity, departmentId, requestedBy, issuedBy, note, transactionDate } = req.body;
 
     if (!itemId || !quantity || !departmentId) {
         return res.status(400).json({ message: "Item, quantity, and department are required" });
     }
 
-    console.log("Creating stock_out with:", { itemId, quantity, departmentId, requestedBy, note, transactionDate });
+    console.log("Creating stock_out with:", { itemId, quantity, departmentId, requestedBy, issuedBy, note, transactionDate });
 
-    const sql = "INSERT INTO stock_out (item_id, quantity, department_id, requested_by, note, transaction_date) VALUES (?, ?, ?, ?, ?, ?)";
+    const sql = "INSERT INTO stock_out (item_id, quantity, department_id, requested_by, issued_by, note, transaction_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-    db.query(sql, [itemId, quantity, departmentId, requestedBy || null, note || null, transactionDate || new Date().toISOString().split('T')[0]], (err, results) => {
+    db.query(sql, [itemId, quantity, departmentId, requestedBy || null, issuedBy || null, note || null, transactionDate || new Date().toISOString().split('T')[0]], (err, results) => {
         if (err) {
             console.error("StockOut POST Error:", err);
             return res.status(500).json({ message: "Error creating stock out record", error: err.message });
