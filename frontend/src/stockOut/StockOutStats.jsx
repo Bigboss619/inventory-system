@@ -2,16 +2,31 @@ import React from 'react';
 import { FiArrowUpCircle } from 'react-icons/fi';
 
 const StockOutStats = ({ stockOut }) => {
-  const today = new Date().toISOString().split('T')[0];
+  // Use local date to avoid UTC conversion issues
+  const today = new Date().toLocaleDateString('en-CA'); // Returns YYYY-MM-DD in local time
   const currentMonth = new Date().toISOString().slice(0, 7);
 
+  // Helper to get date string from DB format
+  const getDateStr = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toLocaleDateString('en-CA');
+  };
+
+  // Debug logging
+  console.log('Today:', today);
+  console.log('StockOut dates:', stockOut.map(s => ({ id: s.id, date: s.transaction_date, dateStr: getDateStr(s.transaction_date) })));
+
   const todayIssued = stockOut
-    .filter(s => s.transaction_date === today)
-    .reduce((sum, s) => sum + s.quantity, 0);
+    .filter(s => getDateStr(s.transaction_date) === today)
+    .reduce((sum, s) => sum + (s.quantity || 0), 0);
 
   const thisMonthIssued = stockOut
-    .filter(s => s.transaction_date && s.transaction_date.startsWith(currentMonth))
-    .reduce((sum, s) => sum + s.quantity, 0);
+    .filter(s => {
+      const dateStr = getDateStr(s.transaction_date);
+      return dateStr && dateStr.startsWith(currentMonth);
+    })
+    .reduce((sum, s) => sum + (s.quantity || 0), 0);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
