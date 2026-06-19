@@ -9,6 +9,7 @@ const departmentRoutes = require("./routes/departments");
 const staffRoutes = require("./routes/staff");
 const categoriesRoutes = require("./routes/categories");
 const itemsRoutes = require("./routes/items");
+const stockInRoutes = require("./routes/stockIn");
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use("/api/departments", departmentRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/items", itemsRoutes);
+app.use("/api/stock-in", stockInRoutes);
 
 app.get("/", (req, res) => {
     res.send("Inventory Management API is running...");

@@ -256,3 +256,55 @@ export const deleteItem = async (id) => {
   }
   return response.json();
 };
+
+// Stock In API
+export const getStockIn = async () => {
+  const response = await fetch(`${API_URL}/stock-in`);
+  return response.json();
+};
+
+export const getStockInById = async (id) => {
+  const response = await fetch(`${API_URL}/stock-in/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch stock in record');
+  }
+  return response.json();
+};
+
+export const createStockIn = async (data) => {
+  const response = await fetch(`${API_URL}/stock-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to add stock');
+  }
+  return response.json();
+};
+
+export const updateStockIn = async (id, data) => {
+  const response = await fetch(`${API_URL}/stock-in/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update stock');
+  }
+  return response.json();
+};
+
+export const deleteStockIn = async (id) => {
+  const response = await fetch(`${API_URL}/stock-in/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete stock');
+  }
+  return response.json();
+};
