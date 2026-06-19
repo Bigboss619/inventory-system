@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS items (
     name VARCHAR(200) NOT NULL,
     description TEXT,
     category_id INT NOT NULL,
-    unit ENUM('pcs', 'box', 'ream', 'set', 'kg', 'liter') DEFAULT 'pcs',
+    unit ENUM('pcs', 'box', 'ream', 'set', 'kg', 'liter', 'pack', 'bundle') DEFAULT 'pcs',
     quantity INT DEFAULT 0,
     min_stock_level INT DEFAULT 5,
     status ENUM('Active', 'Inactive') DEFAULT 'Active',
