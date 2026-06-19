@@ -41,6 +41,10 @@ export const getUsers = async () => {
 
 export const getUserById = async (id) => {
   const response = await fetch(`${API_URL}/users/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch user');
+  }
   return response.json();
 };
 
@@ -59,6 +63,10 @@ export const updateUser = async (id, userData) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(userData),
   });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update user');
+  }
   return response.json();
 };
 

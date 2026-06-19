@@ -1,24 +1,95 @@
-import React, { useState } from 'react';
-import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2, FiSave, FiX, FiLock, FiBell, FiSettings } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiEdit2, FiSave, FiX, FiLock, FiBell, FiSettings, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { updateUser, getUserById } from '../services/api';
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [userId, setUserId] = useState(null);
 
   const [userData, setUserData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@company.com',
-    phone: '+234 801 234 5678',
-    address: '123 Main Street, Lagos, Nigeria',
-    role: 'Administrator',
-    department: 'Operations',
-    joinedDate: '2025-01-15',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    role: '',
+    department_id: null,
+    department: '',
+    created_at: '',
     profileImage: null
   });
 
-  const [formData, setFormData] = useState(userData);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    role: '',
+    department_id: null,
+    department: '',
+    created_at: '',
+    profileImage: null
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Fetch user data on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserId(user.id);
+      fetchUserData(user.id);
+    } else {
+      setFetching(false);
+    }
+  }, []);
+
+  const fetchUserData = async (id) => {
+    setFetching(true);
+    try {
+      const response = await getUserById(id);
+      if (response) {
+        setUserData({
+          firstName: response.first_name || '',
+          lastName: response.last_name || '',
+          email: response.email || '',
+          phone: response.phone || '',
+          address: response.address || '',
+          role: response.role || '',
+          department_id: response.department_id || null,
+          department: '',
+          created_at: response.created_at ? new Date(response.created_at).toLocaleDateString() : '',
+          profileImage: response.profile_image || null
+        });
+        setFormData({
+          firstName: response.first_name || '',
+          lastName: response.last_name || '',
+          email: response.email || '',
+          phone: response.phone || '',
+          address: response.address || '',
+          role: response.role || '',
+          department_id: response.department_id || null,
+          department: '',
+          created_at: response.created_at ? new Date(response.created_at).toLocaleDateString() : '',
+          profileImage: response.profile_image || null
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to fetch user data');
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleEdit = () => {
     setFormData(userData);
@@ -31,16 +102,89 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    if (!userId) return;
+
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setUserData(formData);
-    setLoading(false);
-    setIsEditing(false);
-    toast.success('Profile updated successfully');
+    try {
+      const response = await updateUser(userId, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        address: formData.address
+      });
+
+      if (response.message) {
+        toast.success('Profile updated successfully');
+        setUserData(formData);
+
+        // Update localStorage
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({
+          ...storedUser,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          address: formData.address
+        }));
+
+        setIsEditing(false);
+      } else {
+        toast.error(response.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      toast.error('Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!userId) return;
+
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const response = await updateUser(userId, {
+        password: passwordData.newPassword
+      });
+
+      if (response.message) {
+        toast.success('Password updated successfully');
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        toast.error(response.message || 'Failed to update password');
+      }
+    } catch (error) {
+      toast.error('Failed to update password');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   return (
@@ -62,7 +206,14 @@ const Profile = () => {
         )}
       </div>
 
-      {/* Profile Card */}
+      {/* Loading State */}
+      {fetching ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 flex items-center justify-center">
+          <FiLoader className="w-8 h-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-500">Loading profile...</span>
+        </div>
+      ) : (
+      /* Profile Card */
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-6">
@@ -82,7 +233,6 @@ const Profile = () => {
                 {userData.firstName} {userData.lastName}
               </h2>
               <p className="text-gray-500">{userData.role}</p>
-              <p className="text-sm text-gray-400">{userData.department}</p>
             </div>
           </div>
         </div>
@@ -116,8 +266,8 @@ const Profile = () => {
                   type="email"
                   name="email"
                   value={formData.email}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -213,13 +363,14 @@ const Profile = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Joined Date</p>
-                  <p className="font-medium text-gray-900">{userData.joinedDate}</p>
+                  <p className="font-medium text-gray-900">{userData.created_at}</p>
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
+      )}
 
       {/* Change Password Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -234,6 +385,9 @@ const Profile = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
             <input
               type="password"
+              name="currentPassword"
+              value={passwordData.currentPassword}
+              onChange={handlePasswordChange}
               placeholder="Enter current password"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -242,6 +396,9 @@ const Profile = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
             <input
               type="password"
+              name="newPassword"
+              value={passwordData.newPassword}
+              onChange={handlePasswordChange}
               placeholder="Enter new password"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -250,12 +407,19 @@ const Profile = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
             <input
               type="password"
+              name="confirmPassword"
+              value={passwordData.confirmPassword}
+              onChange={handlePasswordChange}
               placeholder="Confirm new password"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Update Password
+          <button
+            onClick={handleUpdatePassword}
+            disabled={passwordLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {passwordLoading ? 'Updating...' : 'Update Password'}
           </button>
         </div>
       </div>
