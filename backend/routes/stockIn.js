@@ -6,13 +6,10 @@ const router = express.Router();
 // Get all stock in records
 router.get("/", (req, res) => {
     const sql = `
-        SELECT s.id, s.quantity, s.supplier, s.note, s.transaction_date,
-               s.item_id, s.received_by,
-               i.name as item_name, i.item_code,
-               u.name as received_by_name
+        SELECT s.id, s.item_id, s.quantity, s.supplier, s.note, s.received_by, s.transaction_date,
+               i.name as item_name, i.item_code
         FROM stock_in s
         LEFT JOIN items i ON s.item_id = i.id
-        LEFT JOIN users u ON s.received_by = u.id
         ORDER BY s.id DESC
     `;
 
