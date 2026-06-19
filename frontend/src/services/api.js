@@ -308,3 +308,59 @@ export const deleteStockIn = async (id) => {
   }
   return response.json();
 };
+
+// Stock Out API
+export const getStockOut = async () => {
+  const response = await fetch(`${API_URL}/stock-out`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch stock out records');
+  }
+  return response.json();
+};
+
+export const getStockOutById = async (id) => {
+  const response = await fetch(`${API_URL}/stock-out/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch stock out record');
+  }
+  return response.json();
+};
+
+export const createStockOut = async (data) => {
+  const response = await fetch(`${API_URL}/stock-out`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to issue stock');
+  }
+  return response.json();
+};
+
+export const updateStockOut = async (id, data) => {
+  const response = await fetch(`${API_URL}/stock-out/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update stock out record');
+  }
+  return response.json();
+};
+
+export const deleteStockOut = async (id) => {
+  const response = await fetch(`${API_URL}/stock-out/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete stock out record');
+  }
+  return response.json();
+};
