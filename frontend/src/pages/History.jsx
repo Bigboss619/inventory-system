@@ -1,25 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FiFilter, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { getStockIn, getStockOut } from '../services/api';
 
-// Mock data - combining stock in and stock out history
-const MOCK_HISTORY = [
-  { id: 1, item: 'HP Laptop', type: 'Stock In', quantity: 20, user: 'Emmanuel', date: '2026-06-10' },
-  { id: 2, item: 'HP Laptop', type: 'Stock Out', quantity: 2, user: 'Emmanuel', date: '2026-06-15' },
-  { id: 3, item: 'Dell Monitor', type: 'Stock In', quantity: 15, user: 'Admin', date: '2026-06-08' },
-  { id: 4, item: 'Dell Monitor', type: 'Stock Out', quantity: 3, user: 'Admin', date: '2026-06-12' },
-  { id: 5, item: 'Wireless Mouse', type: 'Stock In', quantity: 50, user: 'Emmanuel', date: '2026-06-05' },
-  { id: 6, item: 'Wireless Mouse', type: 'Stock Out', quantity: 10, user: 'Admin', date: '2026-06-14' },
-  { id: 7, item: 'Keyboard', type: 'Stock In', quantity: 30, user: 'Admin', date: '2026-06-03' },
-  { id: 8, item: 'Keyboard', type: 'Stock Out', quantity: 5, user: 'Emmanuel', date: '2026-06-16' },
-  { id: 9, item: 'USB Cable', type: 'Stock In', quantity: 100, user: 'Emmanuel', date: '2026-06-01' },
-  { id: 10, item: 'USB Cable', type: 'Stock Out', quantity: 25, user: 'Admin', date: '2026-06-13' },
-  { id: 11, item: 'HP Laptop', type: 'Stock In', quantity: 10, user: 'Admin', date: '2026-05-28' },
-  { id: 12, item: 'Dell Monitor', type: 'Stock Out', quantity: 2, user: 'Emmanuel', date: '2026-05-30' },
-];
-
-const ITEMS = ['All Items', 'HP Laptop', 'Dell Monitor', 'Wireless Mouse', 'Keyboard', 'USB Cable'];
 const MOVEMENT_TYPES = ['All', 'Stock In', 'Stock Out'];
 
 const History = () => {
@@ -27,7 +11,54 @@ const History = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [movementFilter, setMovementFilter] = useState('All');
-  const [history] = useState(MOCK_HISTORY);
+  const [history, setHistory] = useState([]);
+  const [items, setItems] = useState(['All Items']);
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    setFetching(true);
+    try {
+      const [stockInData, stockOutData] = await Promise.all([
+        getStockIn(),
+        getStockOut()
+      ]);
+
+      // Combine stock in and stock out into history
+      const combinedHistory = [
+        ...(stockInData || []).map(s => ({
+          id: `in-${s.id}`,
+          item: s.item_name || '-',
+          type: 'Stock In',
+          quantity: s.quantity,
+          user: s.received_by_name || '-',
+          date: s.transaction_date
+        })),
+        ...(stockOutData || []).map(s => ({
+          id: `out-${s.id}`,
+          item: s.item_name || '-',
+          type: 'Stock Out',
+          quantity: s.quantity,
+          user: s.issued_by_name || '-',
+          date: s.transaction_date
+        }))
+      ];
+
+      setHistory(combinedHistory);
+
+      // Get unique items for filter
+      const uniqueItemNames = [...new Set(combinedHistory.map(h => h.item).filter(Boolean))];
+      setItems(['All Items', ...uniqueItemNames]);
+    } catch (error) {
+      toast.error('Failed to fetch history');
+      setHistory([]);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   // Filtered history
   const filteredHistory = useMemo(() => {
@@ -39,6 +70,8 @@ const History = () => {
       return matchesItem && matchesMovement && matchesDateFrom && matchesDateTo;
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [history, itemFilter, dateFrom, dateTo, movementFilter]);
+
+  const itemList = items;
 
   const handleExportExcel = () => {
     const exportData = filteredHistory.map(h => ({
@@ -108,7 +141,7 @@ const History = () => {
               onChange={(e) => setItemFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {ITEMS.map(item => (
+              {itemList.map(item => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </select>
@@ -172,7 +205,9 @@ const History = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">No history found</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                      {fetching ? 'Loading...' : 'No history found'}
+                    </td>
                 </tr>
               ) : (
                 filteredHistory.map((h) => (

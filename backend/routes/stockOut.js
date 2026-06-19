@@ -62,7 +62,7 @@ router.post("/", (req, res) => {
 
     const sql = "INSERT INTO stock_out (item_id, quantity, department_id, requested_by, issued_by, note, transaction_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-    db.query(sql, [itemId, quantity, departmentId, requestedBy || null, issuedBy || null, note || null, transactionDate || new Date().toISOString().split('T')[0]], (err, results) => {
+    db.query(sql, [itemId, quantity, departmentId, requestedBy || null, issuedBy || null, note || null, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
         if (err) {
             console.error("StockOut POST Error:", err);
             return res.status(500).json({ message: "Error creating stock out record", error: err.message });

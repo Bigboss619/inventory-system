@@ -57,7 +57,7 @@ router.post("/", (req, res) => {
 
     const sql = "INSERT INTO stock_in (item_id, quantity, supplier, note, received_by, transaction_date) VALUES (?, ?, ?, ?, ?, ?)";
 
-    db.query(sql, [itemId, quantity, supplier || null, note || null, receivedBy || null, transactionDate || new Date().toISOString().split('T')[0]], (err, results) => {
+    db.query(sql, [itemId, quantity, supplier || null, note || null, receivedBy || null, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
         if (err) {
             console.error("StockIn POST Error:", err);
             return res.status(500).json({ message: "Error creating stock in record", error: err.message });
