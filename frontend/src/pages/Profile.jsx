@@ -104,12 +104,19 @@ const Profile = () => {
 
     setLoading(true);
     try {
-      const response = await updateUser(userId, {
+      const updateData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
         address: formData.address
-      });
+      };
+
+      // Super Admin can also update email
+      if (userData.role === 'Super Admin') {
+        updateData.email = formData.email;
+      }
+
+      const response = await updateUser(userId, updateData);
 
       if (response.message) {
         toast.success('Profile updated successfully');
@@ -122,7 +129,8 @@ const Profile = () => {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone,
-          address: formData.address
+          address: formData.address,
+          email: formData.email
         }));
 
         setIsEditing(false);
@@ -210,6 +218,7 @@ const Profile = () => {
                   onChange={handleChange}
                   onCancel={handleCancel}
                   onSave={handleSave}
+                  userRole={userData.role}
                 />
               ) : (
                 <ProfileDetails userData={userData} />

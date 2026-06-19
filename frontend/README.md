@@ -1,5 +1,5 @@
 admin login
-email = admin@inventory.com
+email = eugochukwu910@gmail.com
 password = Awesome619$
 
 inventory Officer

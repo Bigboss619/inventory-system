@@ -1,6 +1,8 @@
 import { FiX, FiSave } from 'react-icons/fi';
 
-const ProfileForm = ({ formData, loading, onChange, onCancel, onSave }) => {
+const ProfileForm = ({ formData, loading, onChange, onCancel, onSave, userRole }) => {
+  const isSuperAdmin = userRole === 'Super Admin';
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
@@ -29,9 +31,17 @@ const ProfileForm = ({ formData, loading, onChange, onCancel, onSave }) => {
           type="email"
           name="email"
           value={formData.email}
-          readOnly
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+          onChange={onChange}
+          readOnly={!isSuperAdmin}
+          className={`w-full px-3 py-2 border rounded-lg ${
+            isSuperAdmin
+              ? 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+              : 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed'
+          }`}
         />
+        {!isSuperAdmin && (
+          <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+        )}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
