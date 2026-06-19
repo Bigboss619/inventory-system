@@ -10,6 +10,7 @@ import ItemModal from '../items/ItemModal';
 
 const Items = () => {
   const [items, setItems] = useState([]);
+  const [userRole, setUserRole] = useState('');
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -21,6 +22,9 @@ const Items = () => {
 
   useEffect(() => {
     fetchData();
+    // Get user role from localStorage
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(storedUser.role || '');
   }, []);
 
   const fetchData = async () => {
@@ -139,6 +143,7 @@ const Items = () => {
       <ItemsTable
         items={filteredItems}
         fetching={fetching}
+        userRole={userRole}
         onEdit={handleEditItem}
         onDelete={handleDeleteItem}
       />
@@ -152,6 +157,7 @@ const Items = () => {
         item={editingItem}
         categories={categories}
         loading={loading}
+        readOnly={userRole !== 'Super Admin'}
       />
     </div>
   );

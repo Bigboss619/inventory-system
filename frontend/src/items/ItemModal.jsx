@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiX, FiLoader } from 'react-icons/fi';
 
-const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
+const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading, readOnly = false }) => {
   const [formData, setFormData] = useState({
     name: '',
     categoryId: '',
@@ -64,6 +64,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
                 placeholder="Enter item name"
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                disabled={readOnly}
               />
             </div>
             <div>
@@ -74,6 +75,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                disabled={readOnly}
               >
                 <option value="">Select Category</option>
                 {categories.map(cat => (
@@ -92,6 +94,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
               placeholder="Enter description"
               rows="2"
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              disabled={readOnly}
             />
           </div>
 
@@ -103,6 +106,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
                 value={formData.unit}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={readOnly}
               >
                 <option value="pcs">Pieces</option>
                 <option value="box">Box</option>
@@ -123,6 +127,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
                 onChange={handleChange}
                 min="0"
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={readOnly}
               />
             </div>
             <div>
@@ -134,6 +139,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
                 onChange={handleChange}
                 min="0"
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -144,16 +150,18 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
-              Cancel
+              {readOnly ? 'Close' : 'Cancel'}
             </button>
-            <button
-              type="submit"
-              disabled={loading || !formData.name.trim() || !formData.categoryId}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading && <FiLoader className="w-4 h-4 animate-spin" />}
-              {item ? 'Update Item' : 'Save Item'}
-            </button>
+            {!readOnly && (
+              <button
+                type="submit"
+                disabled={loading || !formData.name.trim() || !formData.categoryId}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading && <FiLoader className="w-4 h-4 animate-spin" />}
+                {item ? 'Update Item' : 'Save Item'}
+              </button>
+            )}
           </div>
         </form>
       </div>

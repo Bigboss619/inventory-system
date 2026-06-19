@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiEdit2, FiTrash2, FiLoader } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiLoader, FiEye } from 'react-icons/fi';
 
 const STATUS_COLORS = {
   available: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
@@ -7,8 +7,11 @@ const STATUS_COLORS = {
   out: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
 };
 
-const ItemsTable = ({ items, fetching, onEdit, onDelete }) => {
+const isSuperAdmin = (role) => role === 'Super Admin';
+
+const ItemsTable = ({ items, fetching, userRole, onEdit, onDelete }) => {
   const filteredItems = items;
+  const canEdit = isSuperAdmin(userRole);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -54,20 +57,32 @@ const ItemsTable = ({ items, fetching, onEdit, onDelete }) => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => onEdit(item)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <FiEdit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(item.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
+                      {canEdit ? (
+                        <>
+                          <button
+                            onClick={() => onEdit(item)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <FiEdit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(item.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => onEdit(item)}
+                          className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                          title="View"
+                        >
+                          <FiEye className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
