@@ -12,7 +12,8 @@ router.post("/login", async (req, res) => {
         return res.status(400).json({ message: "Email and password are required" });
     }
 
-    const sql = "SELECT * FROM users WHERE email = ? AND status = 'Active'";
+    // First check if user exists (regardless of status)
+    const sql = "SELECT * FROM users WHERE email = ?";
     db.query(sql, [email], async (err, results) => {
         if (err) {
             return res.status(500).json({ message: "Server error", error: err });
@@ -29,6 +30,11 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
+        // Check if account is suspended
+        if (user.status !== 'Active') {
+            return res.status(403).json({ message: "Your account has been suspended" });
+        }
+
         res.json({
             message: "Login successful",
             user: {
@@ -39,7 +45,7 @@ router.post("/login", async (req, res) => {
                 phone: user.phone,
                 address: user.address,
                 role: user.role,
-                department: user.department,
+                department_id: user.department_id,
                 profileImage: user.profile_image
             }
         });
@@ -73,7 +79,7 @@ router.get("/me", (req, res) => {
         return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department, profile_image FROM users WHERE id = ?";
+    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department_id, profile_image FROM users WHERE id = ?";
     db.query(sql, [userId], (err, results) => {
         if (err) {
             return res.status(500).json({ message: "Server error" });
@@ -92,7 +98,7 @@ router.get("/me", (req, res) => {
             phone: user.phone,
             address: user.address,
             role: user.role,
-            department: user.department,
+            department_id: user.department_id,
             profileImage: user.profile_image
         });
     });

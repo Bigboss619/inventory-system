@@ -257,7 +257,7 @@ const UserRolesSettings = () => {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff' });
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', status: 'Active' });
   const { user: currentUser } = useAuth();
 
   const fetchUsers = async () => {
@@ -305,11 +305,12 @@ const UserRolesSettings = () => {
         email: user.email,
         password: '',
         departmentId: user.department_id || user.department_id || '',
-        role: user.role
+        role: user.role,
+        status: user.status || 'Active'
       });
     } else {
       setEditingUser(null);
-      setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff' });
+      setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', status: 'Active' });
     }
     setShowModal(true);
   };
@@ -317,7 +318,7 @@ const UserRolesSettings = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff' });
+    setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', status: 'Active' });
   };
 
   const handleSubmit = async (e) => {
@@ -325,7 +326,8 @@ const UserRolesSettings = () => {
     try {
       const userData = {
         ...formData,
-        departmentId: formData.departmentId ? parseInt(formData.departmentId) : null
+        departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
+        status: formData.status
       };
       if (editingUser) {
         await updateUser(editingUser.id, userData);
@@ -517,6 +519,17 @@ const UserRolesSettings = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
