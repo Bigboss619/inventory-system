@@ -1,22 +1,8 @@
-import React, { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiBox, FiAlertTriangle, FiX, FiDownload } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiBox, FiAlertTriangle, FiX, FiDownload, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { FiLoader } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
-
-// Mock data
-const MOCK_ITEMS = [
-  { id: 1, code: 'LAP-001', name: 'Dell XPS 15 Laptop', category: 'Electronics', quantity: 5, minStock: 3, status: 'available' },
-  { id: 2, code: 'LAP-002', name: 'MacBook Pro 14"', category: 'Electronics', quantity: 2, minStock: 5, status: 'low' },
-  { id: 3, code: 'MON-001', name: 'LG UltraWide Monitor', category: 'Electronics', quantity: 0, minStock: 3, status: 'out' },
-  { id: 4, code: 'KIT-001', name: 'Office Desk Chair', category: 'Furniture', quantity: 15, minStock: 5, status: 'available' },
-  { id: 5, code: 'KIT-002', name: 'Standing Desk', category: 'Furniture', quantity: 8, minStock: 3, status: 'available' },
-  { id: 6, code: 'STA-001', name: 'A4 Paper (Ream)', category: 'Stationery', quantity: 2, minStock: 10, status: 'low' },
-  { id: 7, code: 'STA-002', name: 'Ballpoint Pens (Box)', category: 'Stationery', quantity: 0, minStock: 5, status: 'out' },
-  { id: 8, code: 'KIT-003', name: 'HP Printer', category: 'IT Equipment', quantity: 12, minStock: 3, status: 'available' },
-];
-
-const MOCK_CATEGORIES = ['Electronics', 'Furniture', 'Stationery', 'IT Equipment', 'Kitchen'];
+import { getItems, createItem, updateItem, deleteItem, getCategories } from '../services/api';
 
 const STATUS_COLORS = {
   available: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
@@ -25,13 +11,38 @@ const STATUS_COLORS = {
 };
 
 const Items = () => {
-  const [items, setItems] = useState(MOCK_ITEMS);
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  // Fetch items and categories on mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setFetching(true);
+    try {
+      const [itemsData, categoriesData] = await Promise.all([
+        getItems(),
+        getCategories()
+      ]);
+      setItems(Array.isArray(itemsData) ? itemsData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+    } catch (error) {
+      toast.error('Failed to fetch data');
+      setItems([]);
+      setCategories([]);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   // Stats
   const totalItems = items.length;
@@ -40,9 +51,9 @@ const Items = () => {
 
   // Filter items
   const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.code.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !categoryFilter || item.category === categoryFilter;
+    const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (item.item_code || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !categoryFilter || item.category_id == categoryFilter;
     const matchesStatus = !statusFilter || item.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -57,44 +68,45 @@ const Items = () => {
     setModalOpen(true);
   };
 
-  const handleDeleteItem = (id) => {
+  const handleDeleteItem = async (id) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
-      setItems(items.filter(item => item.id !== id));
-      toast.success('Item deleted successfully');
+      try {
+        await deleteItem(id);
+        toast.success('Item deleted successfully');
+        fetchData();
+      } catch (error) {
+        toast.error('Failed to delete item');
+      }
     }
   };
 
-  const handleSaveItem = async (itemData) => {
+  const handleSaveItem = async (formData) => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (editingItem) {
-      setItems(items.map(item =>
-        item.id === editingItem.id ? { ...item, ...itemData } : item
-      ));
-      toast.success('Item updated successfully');
-    } else {
-      const newItem = {
-        id: Date.now(),
-        ...itemData,
-        code: `ITEM-${String(items.length + 1).padStart(3, '0')}`,
-        status: itemData.quantity === 0 ? 'out' : itemData.quantity <= itemData.minStock ? 'low' : 'available'
-      };
-      setItems([...items, newItem]);
-      toast.success('Item added successfully');
+    try {
+      if (editingItem) {
+        await updateItem(editingItem.id, formData);
+        toast.success('Item updated successfully');
+      } else {
+        await createItem(formData);
+        toast.success('Item added successfully');
+      }
+      fetchData();
+      setModalOpen(false);
+      setEditingItem(null);
+    } catch (error) {
+      toast.error(error.message || 'Failed to save item');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setModalOpen(false);
   };
 
   const handleExportExcel = () => {
     const exportData = filteredItems.map(item => ({
-      'Code': item.code,
+      'Code': item.item_code,
       'Name': item.name,
-      'Category': item.category,
+      'Category': item.category_name || '-',
       'Quantity': item.quantity,
-      'Min Stock': item.minStock,
+      'Min Stock': item.min_stock_level,
       'Status': item.status === 'available' ? 'Available' : item.status === 'low' ? 'Low Stock' : 'Out of Stock'
     }));
 
@@ -108,12 +120,12 @@ const Items = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Items');
 
     ws['!cols'] = [
-      { wch: 12 }, // Code
-      { wch: 25 }, // Name
-      { wch: 15 }, // Category
-      { wch: 10 }, // Quantity
-      { wch: 10 }, // Min Stock
-      { wch: 12 }  // Status
+      { wch: 12 },
+      { wch: 25 },
+      { wch: 15 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 12 }
     ];
 
     XLSX.writeFile(wb, `items-export-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -186,7 +198,6 @@ const Items = () => {
       {/* Search & Filters */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search */}
           <div className="relative flex-1">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -197,20 +208,16 @@ const Items = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-
-          {/* Category Filter */}
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Categories</option>
-            {MOCK_CATEGORIES.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
-
-          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -240,57 +247,68 @@ const Items = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.code}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{item.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{item.category}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{item.quantity}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{item.minStock}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[item.status].bg} ${STATUS_COLORS[item.status].text}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[item.status].dot}`} />
-                      {item.status === 'available' ? 'Available' : item.status === 'low' ? 'Low Stock' : 'Out of Stock'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEditItem(item)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <FiEdit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+              {fetching ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    <FiLoader className="w-6 h-6 animate-spin mx-auto text-blue-600" />
                   </td>
                 </tr>
-              ))}
+              ) : filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    No items found. Add your first item to get started.
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.item_code}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{item.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.category_name || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.quantity}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.min_stock_level}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[item.status]?.bg || 'bg-gray-100'} ${STATUS_COLORS[item.status]?.text || 'text-gray-700'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[item.status]?.dot || 'bg-gray-500'}`} />
+                        {item.status === 'available' ? 'Available' : item.status === 'low' ? 'Low Stock' : 'Out of Stock'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditItem(item)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <FiEdit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-
-        {filteredItems.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
-            No items found. Try adjusting your search or filters.
-          </div>
-        )}
       </div>
 
       {/* Add/Edit Modal */}
       <ItemModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingItem(null);
+        }}
         onSave={handleSaveItem}
         item={editingItem}
-        categories={MOCK_CATEGORIES}
+        categories={categories}
         loading={loading}
       />
     </div>
@@ -301,22 +319,22 @@ const Items = () => {
 const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
   const [formData, setFormData] = useState({
     name: '',
-    category: '',
+    categoryId: '',
     description: '',
     unit: 'pcs',
     quantity: 0,
     minStock: 5
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setFormData({
         name: item?.name || '',
-        category: item?.category || '',
+        categoryId: item?.category_id || '',
         description: item?.description || '',
         unit: item?.unit || 'pcs',
         quantity: item?.quantity || 0,
-        minStock: item?.minStock || 5
+        minStock: item?.min_stock_level || 5
       });
     }
   }, [isOpen, item]);
@@ -328,7 +346,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.category) {
+    if (!formData.name.trim() || !formData.categoryId) {
       return;
     }
     onSave(formData);
@@ -366,15 +384,15 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
               <select
-                name="category"
-                value={formData.category}
+                name="categoryId"
+                value={formData.categoryId}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
                 <option value="">Select Category</option>
                 {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
             </div>
@@ -405,6 +423,8 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
                 <option value="box">Box</option>
                 <option value="ream">Ream</option>
                 <option value="set">Set</option>
+                <option value="kg">Kilogram</option>
+                <option value="liter">Liter</option>
               </select>
             </div>
             <div>
@@ -441,7 +461,7 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading }) => {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.name.trim() || !formData.category}
+              disabled={loading || !formData.name.trim() || !formData.categoryId}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               {loading && <FiLoader className="w-4 h-4 animate-spin" />}

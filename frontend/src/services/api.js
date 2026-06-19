@@ -204,3 +204,55 @@ export const deleteCategory = async (id) => {
   });
   return response.json();
 };
+
+// Items API
+export const getItems = async () => {
+  const response = await fetch(`${API_URL}/items`);
+  return response.json();
+};
+
+export const getItemById = async (id) => {
+  const response = await fetch(`${API_URL}/items/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch item');
+  }
+  return response.json();
+};
+
+export const createItem = async (data) => {
+  const response = await fetch(`${API_URL}/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create item');
+  }
+  return response.json();
+};
+
+export const updateItem = async (id, data) => {
+  const response = await fetch(`${API_URL}/items/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update item');
+  }
+  return response.json();
+};
+
+export const deleteItem = async (id) => {
+  const response = await fetch(`${API_URL}/items/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete item');
+  }
+  return response.json();
+};
