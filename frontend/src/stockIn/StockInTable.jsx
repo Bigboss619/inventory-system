@@ -13,7 +13,9 @@ const StockInTable = ({ stockIn, fetching, userRole, onEdit, onDelete }) => {
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Item</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Quantity</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Supplier</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Received By</th>
+              {canEdit && (
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Received By</th>
+              )}
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
               {canEdit && (
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
@@ -41,7 +43,9 @@ const StockInTable = ({ stockIn, fetching, userRole, onEdit, onDelete }) => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{record.quantity}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{record.supplier || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{record.received_by_name || '-'}</td>
+                  {canEdit && (
+                    <td className="px-6 py-4 text-sm text-gray-500">{record.received_by_name || '-'}</td>
+                  )}
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {record.transaction_date ? new Date(record.transaction_date).toLocaleDateString() : '-'}
                   </td>

@@ -7,9 +7,11 @@ const router = express.Router();
 router.get("/", (req, res) => {
     const sql = `
         SELECT s.id, s.item_id, s.quantity, s.supplier, s.note, s.received_by, s.transaction_date,
-               i.name as item_name, i.item_code
+               i.name as item_name, i.item_code,
+               CONCAT(u.first_name, ' ', u.last_name) as received_by_name
         FROM stock_in s
         LEFT JOIN items i ON s.item_id = i.id
+        LEFT JOIN users u ON s.received_by = u.id
         ORDER BY s.id DESC
     `;
 
