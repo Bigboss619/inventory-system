@@ -173,3 +173,34 @@ export const deleteStaff = async (id) => {
   }
   return response.json();
 };
+
+// Categories API
+export const getCategories = async () => {
+  const response = await fetch(`${API_URL}/categories`);
+  return response.json();
+};
+
+export const createCategory = async (data) => {
+  const response = await fetch(`${API_URL}/categories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+};
+
+export const updateCategory = async (id, data) => {
+  const response = await fetch(`${API_URL}/categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+};
+
+export const deleteCategory = async (id) => {
+  const response = await fetch(`${API_URL}/categories/${id}`, {
+    method: 'DELETE',
+  });
+  return response.json();
+};

@@ -1,27 +1,38 @@
-import React, { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiEye, FiLayers, FiBox, FiDownload } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiEdit2, FiTrash2, FiDownload, FiLayers, FiBox, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import CategoryModal from '../components/forms/CategoryModal';
 import * as XLSX from 'xlsx';
-
-// Mock data
-const MOCK_CATEGORIES = [
-  { id: 1, name: 'Electronics', description: 'Electronic devices and accessories', items: 45, dateCreated: '2025-01-15' },
-  { id: 2, name: 'Furniture', description: 'Office and home furniture', items: 28, dateCreated: '2025-02-10' },
-  { id: 3, name: 'Stationery', description: 'Office supplies and stationery', items: 120, dateCreated: '2025-03-05' },
-  { id: 4, name: 'IT Equipment', description: 'Computers and IT peripherals', items: 35, dateCreated: '2025-04-20' },
-  { id: 5, name: 'Kitchen', description: 'Kitchen appliances and utensils', items: 18, dateCreated: '2025-05-12' },
-];
+import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/api';
+import CategoryModal from '../components/forms/CategoryModal';
 
 const Categories = () => {
-  const [categories, setCategories] = useState(MOCK_CATEGORIES);
+  const [categories, setCategories] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    setFetching(true);
+    try {
+      const data = await getCategories();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error('Failed to fetch categories');
+      setCategories([]);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   // Stats
   const totalCategories = categories.length;
-  const totalItems = categories.reduce((sum, cat) => sum + cat.items, 0);
+  const totalItems = categories.reduce((sum, cat) => sum + (cat.items_count || 0), 0);
 
   const handleAddCategory = () => {
     setEditingCategory(null);
@@ -33,47 +44,44 @@ const Categories = () => {
     setModalOpen(true);
   };
 
-  const handleDeleteCategory = (id) => {
+  const handleDeleteCategory = async (id) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
-      setCategories(categories.filter(cat => cat.id !== id));
-      toast.success('Category deleted successfully');
+      try {
+        await deleteCategory(id);
+        toast.success('Category deleted successfully');
+        fetchCategories();
+      } catch (error) {
+        toast.error('Failed to delete category');
+      }
     }
   };
 
-  const handleSaveCategory = async (categoryData) => {
+  const handleSaveCategory = async (formData) => {
     setLoading(true);
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (editingCategory) {
-      // Update existing
-      setCategories(categories.map(cat =>
-        cat.id === editingCategory.id ? { ...cat, ...categoryData } : cat
-      ));
-      toast.success('Category updated successfully');
-    } else {
-      // Add new
-      const newCategory = {
-        id: Date.now(),
-        ...categoryData,
-        items: 0,
-        dateCreated: new Date().toISOString().split('T')[0]
-      };
-      setCategories([...categories, newCategory]);
-      toast.success('Category added successfully');
+    try {
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, formData);
+        toast.success('Category updated successfully');
+      } else {
+        await createCategory(formData);
+        toast.success('Category added successfully');
+      }
+      fetchCategories();
+      setModalOpen(false);
+      setEditingCategory(null);
+    } catch (error) {
+      toast.error(error.message || 'Failed to save category');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setModalOpen(false);
   };
 
   const handleExportExcel = () => {
     const exportData = categories.map(cat => ({
       'Name': cat.name,
       'Description': cat.description,
-      'Items': cat.items,
-      'Date Created': cat.dateCreated
+      'Items': cat.items_count || 0,
+      'Date Created': cat.created_at ? new Date(cat.created_at).toLocaleDateString() : '-'
     }));
 
     if (exportData.length === 0) {
@@ -86,10 +94,10 @@ const Categories = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Categories');
 
     ws['!cols'] = [
-      { wch: 20 }, // Name
-      { wch: 35 }, // Description
-      { wch: 10 }, // Items
-      { wch: 14 }  // Date Created
+      { wch: 20 },
+      { wch: 35 },
+      { wch: 10 },
+      { wch: 14 }
     ];
 
     XLSX.writeFile(wb, `categories-export-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -162,47 +170,60 @@ const Categories = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {categories.map((category) => (
-                <tr key={category.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{category.description}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{category.items}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{category.dateCreated}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEditCategory(category)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <FiEdit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(category.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+              {fetching ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <FiLoader className="w-6 h-6 animate-spin mx-auto text-blue-600" />
                   </td>
                 </tr>
-              ))}
+              ) : categories.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    No categories found. Add your first category to get started.
+                  </td>
+                </tr>
+              ) : (
+                categories.map((category) => (
+                  <tr key={category.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{category.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{category.description || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{category.items_count || 0}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {category.created_at ? new Date(category.created_at).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditCategory(category)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <FiEdit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(category.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-
-        {categories.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
-            No categories found. Add your first category to get started.
-          </div>
-        )}
       </div>
 
       {/* Add/Edit Modal */}
       <CategoryModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingCategory(null);
+        }}
         onSave={handleSaveCategory}
         category={editingCategory}
         loading={loading}
