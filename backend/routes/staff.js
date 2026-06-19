@@ -66,16 +66,18 @@ router.get("/:id", (req, res) => {
 router.post("/", async (req, res) => {
     const { firstName, lastName, email, phone, departmentId, position } = req.body;
 
-    if (!firstName || !lastName || !email || !departmentId) {
-        return res.status(400).json({ message: "First name, last name, email, and department are required" });
+    if (!firstName || !lastName || !departmentId) {
+        return res.status(400).json({ message: "First name, last name, and department are required" });
     }
 
     try {
         const staffId = await generateStaffId();
+        // Auto-generate email if not provided
+        const generatedEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@staff.com`;
 
         const sql = "INSERT INTO staff (staff_id, first_name, last_name, email, phone, department_id, position) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        db.query(sql, [staffId, firstName, lastName, email, phone, departmentId, position], (err, results) => {
+        db.query(sql, [staffId, firstName, lastName, generatedEmail, phone, departmentId, position], (err, results) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return res.status(400).json({ message: "Email already exists" });

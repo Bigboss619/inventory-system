@@ -329,10 +329,7 @@ const StaffModal = ({ isOpen, onClose, onSave, staff, loading, departments }) =>
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    departmentId: departments[0]?.id || null,
-    position: '',
-    email: '',
-    phone: ''
+    departmentId: departments[0]?.id || null
   });
 
   useEffect(() => {
@@ -343,19 +340,13 @@ const StaffModal = ({ isOpen, onClose, onSave, staff, loading, departments }) =>
         setFormData({
           firstName: staff.first_name || '',
           lastName: staff.last_name || '',
-          departmentId: dept?.id || staff.department_id || null,
-          position: staff.position || '',
-          email: staff.email || '',
-          phone: staff.phone || ''
+          departmentId: dept?.id || staff.department_id || null
         });
       } else {
         setFormData({
           firstName: '',
           lastName: '',
-          departmentId: departments[0]?.id || null,
-          position: '',
-          email: '',
-          phone: ''
+          departmentId: departments[0]?.id || null
         });
       }
     }
@@ -365,7 +356,7 @@ const StaffModal = ({ isOpen, onClose, onSave, staff, loading, departments }) =>
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.firstName || !formData.lastName || !formData.departmentId || !formData.email) {
+    if (!formData.firstName || !formData.lastName || !formData.departmentId) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -428,36 +419,6 @@ const StaffModal = ({ isOpen, onClose, onSave, staff, loading, departments }) =>
                 <option key={dept.id} value={dept.id}>{dept.name}</option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-            <input
-              type="text"
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              placeholder="Enter position"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="Enter email"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="Enter phone number"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
           </div>
           <div className="flex gap-3 pt-2">
             <button
