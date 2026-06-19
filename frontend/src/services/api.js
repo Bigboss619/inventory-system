@@ -121,3 +121,55 @@ export const deleteDepartment = async (id) => {
   });
   return response.json();
 };
+
+// Staff API
+export const getStaff = async () => {
+  const response = await fetch(`${API_URL}/staff`);
+  return response.json();
+};
+
+export const getStaffById = async (id) => {
+  const response = await fetch(`${API_URL}/staff/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch staff');
+  }
+  return response.json();
+};
+
+export const createStaff = async (staffData) => {
+  const response = await fetch(`${API_URL}/staff`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(staffData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create staff');
+  }
+  return response.json();
+};
+
+export const updateStaff = async (id, staffData) => {
+  const response = await fetch(`${API_URL}/staff/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(staffData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update staff');
+  }
+  return response.json();
+};
+
+export const deleteStaff = async (id) => {
+  const response = await fetch(`${API_URL}/staff/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete staff');
+  }
+  return response.json();
+};

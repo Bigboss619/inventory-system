@@ -1,44 +1,63 @@
-import React, { useState, useMemo } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiEye, FiUsers, FiBriefcase, FiX, FiDownload } from 'react-icons/fi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiEye, FiUsers, FiBriefcase, FiX, FiDownload, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { FiLoader } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
-
-// Mock data
-const MOCK_STAFF = [
-  { id: 1, staffId: 'STF001', name: 'John Smith', department: 'IT', position: 'Developer', email: 'john.smith@company.com', phone: '555-0101', dateCreated: '2025-01-10' },
-  { id: 2, staffId: 'STF002', name: 'Sarah Johnson', department: 'HR', position: 'HR Manager', email: 'sarah.j@company.com', phone: '555-0102', dateCreated: '2025-01-15' },
-  { id: 3, staffId: 'STF003', name: 'Michael Brown', department: 'Finance', position: 'Accountant', email: 'm.brown@company.com', phone: '555-0103', dateCreated: '2025-02-01' },
-  { id: 4, staffId: 'STF004', name: 'Emily Davis', department: 'IT', position: 'System Admin', email: 'emily.d@company.com', phone: '555-0104', dateCreated: '2025-02-10' },
-  { id: 5, staffId: 'STF005', name: 'David Wilson', department: 'Operations', position: 'Operations Manager', email: 'd.wilson@company.com', phone: '555-0105', dateCreated: '2025-02-20' },
-  { id: 6, staffId: 'STF006', name: 'Lisa Anderson', department: 'Marketing', position: 'Marketing Specialist', email: 'lisa.a@company.com', phone: '555-0106', dateCreated: '2025-03-05' },
-  { id: 7, staffId: 'STF007', name: 'James Taylor', department: 'IT', position: 'Developer', email: 'james.t@company.com', phone: '555-0107', dateCreated: '2025-03-15' },
-  { id: 8, staffId: 'STF008', name: 'Jennifer Martinez', department: 'Finance', position: 'Financial Analyst', email: 'j.martinez@company.com', phone: '555-0108', dateCreated: '2025-04-01' },
-];
-
-const DEPARTMENTS = ['All', 'IT', 'HR', 'Finance', 'Operations', 'Marketing'];
+import { getStaff, getDepartments, createStaff, updateStaff, deleteStaff } from '../services/api';
 
 const Staff = () => {
-  const [staff, setStaff] = useState(MOCK_STAFF);
+  const [staff, setStaff] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [viewingStaff, setViewingStaff] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
 
+  // Fetch staff and departments on mount
+  useEffect(() => {
+    fetchStaff();
+    fetchDepartments();
+  }, []);
+
+  const fetchStaff = async () => {
+    setFetching(true);
+    try {
+      const data = await getStaff();
+      setStaff(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error('Failed to fetch staff');
+      setStaff([]);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const data = await getDepartments();
+      setDepartments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error('Failed to fetch departments');
+      setDepartments([]);
+    }
+  };
+
   // Stats
   const totalStaff = staff.length;
-  const departments = [...new Set(staff.map(s => s.department))].length;
+  const activeDepartments = [...new Set(staff.map(s => s.department_name))].length;
 
   // Filtered staff
   const filteredStaff = useMemo(() => {
     return staff.filter(s => {
-      const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.staffId.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDepartment = departmentFilter === 'All' || s.department === departmentFilter;
+      const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+      const matchesSearch =
+        fullName.includes(searchQuery.toLowerCase()) ||
+        s.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.staff_id?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesDepartment = departmentFilter === 'All' || s.department_name === departmentFilter;
       return matchesSearch && matchesDepartment;
     });
   }, [staff, searchQuery, departmentFilter]);
@@ -58,47 +77,47 @@ const Staff = () => {
     setViewModalOpen(true);
   };
 
-  const handleDeleteStaff = (id) => {
+  const handleDeleteStaff = async (id) => {
     if (window.confirm('Are you sure you want to delete this staff member?')) {
-      setStaff(staff.filter(s => s.id !== id));
-      toast.success('Staff member deleted successfully');
+      try {
+        await deleteStaff(id);
+        toast.success('Staff member deleted successfully');
+        fetchStaff();
+      } catch (error) {
+        toast.error('Failed to delete staff');
+      }
     }
   };
 
   const handleSaveStaff = async (formData) => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (editingStaff) {
-      setStaff(staff.map(s =>
-        s.id === editingStaff.id ? { ...s, ...formData } : s
-      ));
-      toast.success('Staff updated successfully');
-    } else {
-      const newStaffMember = {
-        id: Date.now(),
-        staffId: `STF${String(staff.length + 1).padStart(3, '0')}`,
-        ...formData,
-        dateCreated: new Date().toISOString().split('T')[0]
-      };
-      setStaff([...staff, newStaffMember]);
-      toast.success('Staff added successfully');
+    try {
+      if (editingStaff) {
+        await updateStaff(editingStaff.id, formData);
+        toast.success('Staff updated successfully');
+      } else {
+        await createStaff(formData);
+        toast.success('Staff added successfully');
+      }
+      fetchStaff();
+      setModalOpen(false);
+      setEditingStaff(null);
+    } catch (error) {
+      toast.error(error.message || 'Failed to save staff');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setModalOpen(false);
-    setEditingStaff(null);
   };
 
   const handleExportExcel = () => {
     const exportData = filteredStaff.map(s => ({
-      'Staff ID': s.staffId,
-      'Name': s.name,
-      'Department': s.department,
+      'Staff ID': s.staff_id,
+      'Name': `${s.first_name} ${s.last_name}`,
+      'Department': s.department_name,
       'Position': s.position,
       'Email': s.email,
       'Phone': s.phone,
-      'Date Created': s.dateCreated
+      'Date Created': s.created_at ? new Date(s.created_at).toLocaleDateString() : '-'
     }));
 
     if (exportData.length === 0) {
@@ -123,6 +142,12 @@ const Staff = () => {
     XLSX.writeFile(wb, `staff-export-${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success('Exported to Excel successfully');
   };
+
+  // Get department options for filter (include 'All')
+  const departmentOptions = ['All', ...new Set(departments.map(d => d.name))];
+
+  // Get department options for modal (real departments only)
+  const modalDepartments = departments.filter(d => d.status === 'Active');
 
   return (
     <div className="space-y-6">
@@ -167,7 +192,7 @@ const Staff = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Departments</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{departments}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{activeDepartments}</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
               <FiBriefcase className="w-6 h-6 text-green-600" />
@@ -193,7 +218,7 @@ const Staff = () => {
           onChange={(e) => setDepartmentFilter(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          {DEPARTMENTS.map(dept => (
+          {departmentOptions.map(dept => (
             <option key={dept} value={dept}>{dept === 'All' ? 'All Departments' : dept}</option>
           ))}
         </select>
@@ -214,21 +239,27 @@ const Staff = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredStaff.length === 0 ? (
+              {fetching ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    <FiLoader className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                  </td>
+                </tr>
+              ) : filteredStaff.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No staff found</td>
                 </tr>
               ) : (
                 filteredStaff.map((s) => (
                   <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 text-sm font-medium text-gray-900">{s.staffId}</td>
-                    <td className="px-4 py-4 text-sm text-gray-700">{s.name}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-gray-900">{s.staff_id}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{s.first_name} {s.last_name}</td>
                     <td className="px-4 py-4 text-sm text-gray-700">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {s.department}
+                        {s.department_name}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">{s.position}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{s.position || '-'}</td>
                     <td className="px-4 py-4 text-sm text-gray-700">{s.email}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
@@ -274,7 +305,7 @@ const Staff = () => {
           onSave={handleSaveStaff}
           staff={editingStaff}
           loading={loading}
-          departments={DEPARTMENTS.filter(d => d !== 'All')}
+          departments={modalDepartments}
         />
       )}
 
@@ -296,22 +327,37 @@ const Staff = () => {
 // Staff Modal Component
 const StaffModal = ({ isOpen, onClose, onSave, staff, loading, departments }) => {
   const [formData, setFormData] = useState({
-    name: staff?.name || '',
-    department: staff?.department || departments[0] || '',
-    position: staff?.position || '',
-    email: staff?.email || '',
-    phone: staff?.phone || ''
+    firstName: '',
+    lastName: '',
+    departmentId: departments[0]?.id || null,
+    position: '',
+    email: '',
+    phone: ''
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
-      setFormData({
-        name: staff?.name || '',
-        department: staff?.department || departments[0] || '',
-        position: staff?.position || '',
-        email: staff?.email || '',
-        phone: staff?.phone || ''
-      });
+      if (staff) {
+        // Find department ID by name for editing
+        const dept = departments.find(d => d.name === staff.department_name);
+        setFormData({
+          firstName: staff.first_name || '',
+          lastName: staff.last_name || '',
+          departmentId: dept?.id || staff.department_id || null,
+          position: staff.position || '',
+          email: staff.email || '',
+          phone: staff.phone || ''
+        });
+      } else {
+        setFormData({
+          firstName: '',
+          lastName: '',
+          departmentId: departments[0]?.id || null,
+          position: '',
+          email: '',
+          phone: ''
+        });
+      }
     }
   }, [isOpen, staff, departments]);
 
@@ -319,7 +365,7 @@ const StaffModal = ({ isOpen, onClose, onSave, staff, loading, departments }) =>
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.department || !formData.position || !formData.email) {
+    if (!formData.firstName || !formData.lastName || !formData.departmentId || !formData.email) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -344,36 +390,47 @@ const StaffModal = ({ isOpen, onClose, onSave, staff, loading, departments }) =>
               <label className="block text-sm font-medium text-gray-700 mb-1">Staff ID</label>
               <input
                 type="text"
-                value={staff.staffId}
+                value={staff.staff_id}
                 disabled
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
               />
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter full name"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              placeholder="Enter first name"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              placeholder="Enter last name"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
             <select
-              value={formData.department}
-              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              value={formData.departmentId || ''}
+              onChange={(e) => setFormData({ ...formData, departmentId: parseInt(e.target.value) })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
+              <option value="">Select department</option>
               {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Position *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
             <input
               type="text"
               value={formData.position}
@@ -446,17 +503,17 @@ const ViewStaffModal = ({ isOpen, onClose, staff }) => {
             </div>
           </div>
           <div className="text-center">
-            <h3 className="text-xl font-semibold text-gray-900">{staff.name}</h3>
-            <p className="text-gray-500">{staff.position}</p>
+            <h3 className="text-xl font-semibold text-gray-900">{staff.first_name} {staff.last_name}</h3>
+            <p className="text-gray-500">{staff.position || '-'}</p>
           </div>
           <div className="border-t pt-4 space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-500">Staff ID</span>
-              <span className="font-medium text-gray-900">{staff.staffId}</span>
+              <span className="font-medium text-gray-900">{staff.staff_id}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Department</span>
-              <span className="font-medium text-gray-900">{staff.department}</span>
+              <span className="font-medium text-gray-900">{staff.department_name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Email</span>
@@ -468,7 +525,9 @@ const ViewStaffModal = ({ isOpen, onClose, staff }) => {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Date Created</span>
-              <span className="font-medium text-gray-900">{staff.dateCreated}</span>
+              <span className="font-medium text-gray-900">
+                {staff.created_at ? new Date(staff.created_at).toLocaleDateString() : '-'}
+              </span>
             </div>
           </div>
         </div>

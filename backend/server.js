@@ -6,6 +6,7 @@ const db = require("./config/config");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const departmentRoutes = require("./routes/departments");
+const staffRoutes = require("./routes/staff");
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/departments", departmentRoutes);
+app.use("/api/staff", staffRoutes);
 
 app.get("/", (req, res) => {
     res.send("Inventory Management API is running...");
