@@ -85,12 +85,26 @@ const StockOut = () => {
       // Get current user from localStorage
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
 
+      console.log('Saving StockOut:', formData);
+
+      // Rename fields for backend
+      const apiData = {
+        itemId: parseInt(formData.itemId),
+        quantity: parseInt(formData.quantity),
+        departmentId: parseInt(formData.departmentId),
+        requestedBy: parseInt(formData.staffId),
+        note: formData.note,
+        transactionDate: formData.transactionDate
+      };
+
+      console.log('API Data:', apiData);
+
       if (editingRecord) {
         await updateStockOut(editingRecord.id, formData);
         toast.success('Stock out record updated');
       } else {
         // Add issuedBy (current user ID) to the data
-        await createStockOut({ ...formData, issuedBy: storedUser.id });
+        await createStockOut({ ...apiData, issuedBy: storedUser.id });
         toast.success('Item issued successfully');
       }
       fetchData();
