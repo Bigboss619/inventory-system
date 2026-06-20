@@ -208,9 +208,11 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
       plateNumber: formData.plateNumber || null,
       model: formData.model,
       staffName: formData.staffName || null,
-      staffEmail: formData.staffEmail || null
+      staffEmail: formData.staffEmail || null,
+      documents: formData.documents,
+      maintenance: formData.maintenance
     };
-    onSave(apiData, formData.documents, formData.maintenance);
+    onSave(apiData);
   };
 
   const addDocument = () => {
@@ -529,14 +531,14 @@ const VehicleRecords = () => {
     }
   };
 
-  const handleSaveVehicle = async (formData, documents = [], maintenance = []) => {
+  const handleSaveVehicle = async (formData) => {
     setLoading(true);
     try {
       if (editingVehicle) {
         await updateVehicle(editingVehicle.asset_id, formData);
         toast.success('Vehicle updated successfully');
       } else {
-        await createVehicle({ ...formData, documents, maintenance });
+        await createVehicle(formData);
         toast.success('Vehicle added successfully');
       }
       await fetchVehicles();

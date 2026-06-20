@@ -37,6 +37,11 @@ router.get("/:assetId", (req, res) => {
 router.post("/", (req, res) => {
     const { name, chassisNumber, plateNumber, model, staffName, staffEmail, documents, maintenance } = req.body;
 
+    console.log("=== CREATE VEHICLE ===");
+    console.log("req.body:", JSON.stringify(req.body));
+    console.log("documents:", documents, "length:", documents ? documents.length : 0);
+    console.log("maintenance:", maintenance, "length:", maintenance ? maintenance.length : 0);
+
     if (!chassisNumber || !model) {
         return res.status(400).json({ message: "Chassis number and model are required" });
     }
@@ -54,17 +59,33 @@ router.post("/", (req, res) => {
         if (err) {
             return res.status(500).json({ message: "Error creating vehicle", error: err });
         }
-        const newAssetId = `AST-${String(results.insertId).padStart(3, '0')}`;
+
+        const insertedId = results.insertId;
+        const newAssetId = `AST-${String(insertedId).padStart(3, '0')}`;
+
+        // Wait for asset_id update to complete before proceeding
         const updateSql = "UPDATE vehicles SET asset_id = ? WHERE id = ?";
-        db.query(updateSql, [newAssetId, results.insertId], (updateErr) => {
+        db.query(updateSql, [newAssetId, insertedId], (updateErr) => {
             if (updateErr) {
                 console.error("Error generating asset_id:", updateErr);
             }
-        });
 
-        // Insert documents if any
-        if (documents && documents.length > 0) {
-            documents.forEach(doc => {
+            // Filter out documents without a name
+            const validDocuments = Array.isArray(documents) ? documents.filter(d => d && d.name) : [];
+            // Filter out maintenance without a type
+            const validMaintenance = Array.isArray(maintenance) ? maintenance.filter(m => m && m.maintenanceType) : [];
+
+            console.log("Valid documents to insert:", validDocuments.length);
+            console.log("Valid maintenance to insert:", validMaintenance.length);
+
+            let docIndex = 0;
+            const insertDocs = () => {
+                if (!validDocuments || docIndex >= validDocuments.length) {
+                    insertMaintenance();
+                    return;
+                }
+                const doc = validDocuments[docIndex];
+                console.log("Inserting document:", doc);
                 const docSql = "INSERT INTO vehicle_documents (asset_id, name, issue_date, expiry_date, status, reminder_days) VALUES (?, ?, ?, ?, ?, ?)";
                 db.query(docSql, [
                     newAssetId,
@@ -73,13 +94,21 @@ router.post("/", (req, res) => {
                     doc.expiryDate || null,
                     doc.status || 'active',
                     doc.reminderDays || 30
-                ]);
-            });
-        }
+                ], (docErr) => {
+                    if (docErr) console.error("Error inserting document:", docErr);
+                    docIndex++;
+                    insertDocs();
+                });
+            };
 
-        // Insert maintenance if any
-        if (maintenance && maintenance.length > 0) {
-            maintenance.forEach(maint => {
+            let maintIndex = 0;
+            const insertMaintenance = () => {
+                if (!validMaintenance || maintIndex >= validMaintenance.length) {
+                    res.status(201).json({ message: "Vehicle created successfully", assetId: newAssetId });
+                    return;
+                }
+                const maint = validMaintenance[maintIndex];
+                console.log("Inserting maintenance:", maint);
                 const maintSql = "INSERT INTO maintenance (asset_id, maintenance_type, last_service, next_due, cost, reminder_days, notes) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 db.query(maintSql, [
                     newAssetId,
@@ -89,11 +118,20 @@ router.post("/", (req, res) => {
                     maint.cost || null,
                     maint.reminderDays || 30,
                     maint.notes || null
-                ]);
-            });
-        }
+                ], (maintErr) => {
+                    if (maintErr) console.error("Error inserting maintenance:", maintErr);
+                    maintIndex++;
+                    insertMaintenance();
+                });
+            };
 
-        res.status(201).json({ message: "Vehicle created successfully", assetId: newAssetId });
+            // Start inserting documents (or skip if none)
+            if (validDocuments.length === 0) {
+                insertMaintenance();
+            } else {
+                insertDocs();
+            }
+        });
     });
 });
 
