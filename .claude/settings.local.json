@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -c backend/routes/vehicles.js)"
+      "Bash(node -c backend/routes/vehicles.js)",
+      "Bash(npm run build)"
     ]
   }
 }
