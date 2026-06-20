@@ -406,13 +406,119 @@ export const updateVehicle = async (id, data) => {
   return response.json();
 };
 
-export const deleteVehicle = async (id) => {
-  const response = await fetch(`${API_URL}/vehicles/${id}`, {
+export const deleteVehicle = async (assetId) => {
+  const response = await fetch(`${API_URL}/vehicles/${assetId}`, {
     method: 'DELETE',
   });
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to delete vehicle');
+  }
+  return response.json();
+};
+
+// ==================== VEHICLE DOCUMENTS ====================
+
+export const getVehicleDocuments = async (assetId) => {
+  const response = await fetch(`${API_URL}/vehicles/${assetId}/documents`);
+  return response.json();
+};
+
+export const getDocumentById = async (id) => {
+  const response = await fetch(`${API_URL}/vehicles/documents/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch document');
+  }
+  return response.json();
+};
+
+export const createDocument = async (data) => {
+  const response = await fetch(`${API_URL}/vehicles/documents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create document');
+  }
+  return response.json();
+};
+
+export const updateDocument = async (id, data) => {
+  const response = await fetch(`${API_URL}/vehicles/documents/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update document');
+  }
+  return response.json();
+};
+
+export const deleteDocument = async (id) => {
+  const response = await fetch(`${API_URL}/vehicles/documents/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete document');
+  }
+  return response.json();
+};
+
+// ==================== MAINTENANCE ====================
+
+export const getMaintenanceRecords = async (assetId) => {
+  const response = await fetch(`${API_URL}/vehicles/${assetId}/maintenance`);
+  return response.json();
+};
+
+export const getMaintenanceById = async (id) => {
+  const response = await fetch(`${API_URL}/vehicles/maintenance/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch maintenance record');
+  }
+  return response.json();
+};
+
+export const createMaintenance = async (data) => {
+  const response = await fetch(`${API_URL}/vehicles/maintenance`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create maintenance record');
+  }
+  return response.json();
+};
+
+export const updateMaintenance = async (id, data) => {
+  const response = await fetch(`${API_URL}/vehicles/maintenance/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update maintenance record');
+  }
+  return response.json();
+};
+
+export const deleteMaintenance = async (id) => {
+  const response = await fetch(`${API_URL}/vehicles/maintenance/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete maintenance record');
   }
   return response.json();
 };

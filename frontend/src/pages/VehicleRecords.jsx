@@ -3,9 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiTruck, FiDownload, FiX, FiFile, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/api';
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle, getVehicleDocuments, createDocument, updateDocument, deleteDocument, getMaintenanceRecords, createMaintenance, updateMaintenance, deleteMaintenance } from '../services/api';
 
 const STATUS_OPTIONS = ['All', 'Active', 'Maintenance', 'Inactive'];
+
+// Column mapping for new schema
+const COLUMN_CONFIG = {
+  assetId: { label: 'Asset ID', key: 'asset_id' },
+  chassisNumber: { label: 'Chassis No.', key: 'chassis_number' },
+  plateNumber: { label: 'Plate No.', key: 'plate_number' },
+  model: { label: 'Model', key: 'model' },
+  staffName: { label: 'Staff Name', key: 'staff_name' },
+  staffEmail: { label: 'Staff Email', key: 'staff_email' }
+};
 
 // Header Component
 const Header = ({ onExport, onAdd }) => (
@@ -73,27 +83,18 @@ const StatsCards = ({ total, active, maintenance }) => (
 );
 
 // SearchFilter Component
-const SearchFilter = ({ searchQuery, setSearchQuery, statusFilter, setStatusFilter }) => (
+const SearchFilter = ({ searchQuery, setSearchQuery }) => (
   <div className="flex flex-col sm:flex-row gap-4">
     <div className="relative flex-1">
       <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
       <input
         type="text"
-        placeholder="Search plate number, model, or driver"
+        placeholder="Search asset ID, plate number, model, or staff name"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
       />
     </div>
-    <select
-      value={statusFilter}
-      onChange={(e) => setStatusFilter(e.target.value)}
-      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-    >
-      {STATUS_OPTIONS.map(status => (
-        <option key={status} value={status}>{status === 'All' ? 'All Status' : status}</option>
-      ))}
-    </select>
   </div>
 );
 
@@ -104,39 +105,29 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset ID</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Chassis No.</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Plate No.</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Model</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Year</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Capacity</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Driver</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Insurance Expiry</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staff Name</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staff Email</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
           {vehicles.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No vehicles found</td>
+              <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No vehicles found</td>
             </tr>
           ) : (
             vehicles.map((v) => (
               <tr key={v.id} className="hover:bg-gray-50">
-                <td className="px-4 py-4 text-sm font-medium text-gray-900">{v.plate_number}</td>
+                <td className="px-4 py-4 text-sm font-medium text-gray-900">{v.asset_id}</td>
+                <td className="px-4 py-4 text-sm text-gray-700">{v.chassis_number}</td>
+                <td className="px-4 py-4 text-sm text-gray-700">{v.plate_number || '-'}</td>
                 <td className="px-4 py-4 text-sm text-gray-700">{v.model}</td>
-                <td className="px-4 py-4 text-sm text-gray-700">{v.year}</td>
-                <td className="px-4 py-4 text-sm text-gray-700">{v.capacity}</td>
-                <td className="px-4 py-4 text-sm text-gray-700">{v.driver}</td>
-                <td className="px-4 py-4 text-sm">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    v.status === 'Active' ? 'bg-green-100 text-green-800' :
-                    v.status === 'Maintenance' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {v.status}
-                  </span>
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-700">{v.insurance_expiry}</td>
+                <td className="px-4 py-4 text-sm text-gray-700">{v.staff_name || '-'}</td>
+                <td className="px-4 py-4 text-sm text-gray-700">{v.staff_email || '-'}</td>
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <button
@@ -154,7 +145,7 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
                       <FiEdit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => onDelete(v.id)}
+                      onClick={() => onDelete(v.asset_id)}
                       className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Delete"
                     >
@@ -174,25 +165,23 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
 // VehicleModal Component
 const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
   const [formData, setFormData] = useState({
+    assetId: vehicle?.asset_id || '',
+    chassisNumber: vehicle?.chassis_number || '',
     plateNumber: vehicle?.plate_number || '',
     model: vehicle?.model || '',
-    year: vehicle?.year || new Date().getFullYear(),
-    capacity: vehicle?.capacity || '5 Seater',
-    driver: vehicle?.driver || '',
-    status: vehicle?.status || 'Active',
-    insuranceExpiry: vehicle?.insurance_expiry || ''
+    staffName: vehicle?.staff_name || '',
+    staffEmail: vehicle?.staff_email || ''
   });
 
   React.useEffect(() => {
     if (isOpen) {
       setFormData({
+        assetId: vehicle?.asset_id || '',
+        chassisNumber: vehicle?.chassis_number || '',
         plateNumber: vehicle?.plate_number || '',
         model: vehicle?.model || '',
-        year: vehicle?.year || new Date().getFullYear(),
-        capacity: vehicle?.capacity || '5 Seater',
-        driver: vehicle?.driver || '',
-        status: vehicle?.status || 'Active',
-        insuranceExpiry: vehicle?.insurance_expiry || ''
+        staffName: vehicle?.staff_name || '',
+        staffEmail: vehicle?.staff_email || ''
       });
     }
   }, [isOpen, vehicle]);
@@ -201,19 +190,17 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.plateNumber || !formData.model || !formData.driver) {
-      toast.error('Please fill in all required fields');
+    if (!formData.assetId || !formData.chassisNumber || !formData.model) {
+      toast.error('Please fill in all required fields (Asset ID, Chassis Number, Model)');
       return;
     }
-    // Convert camelCase to snake_case for API
     const apiData = {
-      plateNumber: formData.plateNumber,
+      assetId: formData.assetId,
+      chassisNumber: formData.chassisNumber,
+      plateNumber: formData.plateNumber || null,
       model: formData.model,
-      year: formData.year,
-      capacity: formData.capacity,
-      driver: formData.driver,
-      status: formData.status,
-      insuranceExpiry: formData.insuranceExpiry
+      staffName: formData.staffName || null,
+      staffEmail: formData.staffEmail || null
     };
     onSave(apiData);
   };
@@ -232,7 +219,28 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Plate Number *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Asset ID *</label>
+            <input
+              type="text"
+              value={formData.assetId}
+              onChange={(e) => setFormData({ ...formData, assetId: e.target.value.toUpperCase() })}
+              placeholder="e.g. AST-001"
+              disabled={!!vehicle}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number *</label>
+            <input
+              type="text"
+              value={formData.chassisNumber}
+              onChange={(e) => setFormData({ ...formData, chassisNumber: e.target.value.toUpperCase() })}
+              placeholder="e.g. JM1BK343551234567"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Plate Number</label>
             <input
               type="text"
               value={formData.plateNumber}
@@ -252,55 +260,22 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-            <input
-              type="number"
-              value={formData.year}
-              onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-            <select
-              value={formData.capacity}
-              onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="5 Seater">5 Seater</option>
-              <option value="12 Seater">12 Seater</option>
-              <option value="14 Seater">14 Seater</option>
-              <option value="Pickup">Pickup</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Driver *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
             <input
               type="text"
-              value={formData.driver}
-              onChange={(e) => setFormData({ ...formData, driver: e.target.value })}
-              placeholder="Driver name"
+              value={formData.staffName}
+              onChange={(e) => setFormData({ ...formData, staffName: e.target.value })}
+              placeholder="Staff name"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="Active">Active</option>
-              <option value="Maintenance">Maintenance</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Expiry</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Staff Email</label>
             <input
-              type="date"
-              value={formData.insuranceExpiry}
-              onChange={(e) => setFormData({ ...formData, insuranceExpiry: e.target.value })}
+              type="email"
+              value={formData.staffEmail}
+              onChange={(e) => setFormData({ ...formData, staffEmail: e.target.value })}
+              placeholder="email@company.com"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -335,7 +310,6 @@ const VehicleRecords = () => {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
 
   useEffect(() => {
     fetchVehicles();
@@ -354,18 +328,16 @@ const VehicleRecords = () => {
   };
 
   const totalVehicles = vehicles.length;
-  const activeVehicles = useMemo(() => vehicles.filter(v => v.status === 'Active').length, [vehicles]);
-  const underMaintenance = useMemo(() => vehicles.filter(v => v.status === 'Maintenance').length, [vehicles]);
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(v => {
-      const matchesSearch = v.plate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.driver.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'All' || v.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesSearch = (v.asset_id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (v.plate_number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (v.model || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (v.staff_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
     });
-  }, [vehicles, searchQuery, statusFilter]);
+  }, [vehicles, searchQuery]);
 
   const handleAddVehicle = () => {
     setEditingVehicle(null);
@@ -378,14 +350,15 @@ const VehicleRecords = () => {
   };
 
   const handleViewDocuments = (vehicle) => {
-    navigate(`/documents/vehicles/${vehicle.id}/documents`);
+    // Navigate to documents tab or open document modal
+    navigate(`/vehicles/${vehicle.asset_id}/documents`);
   };
 
-  const handleDeleteVehicle = async (id) => {
+  const handleDeleteVehicle = async (assetId) => {
     if (window.confirm('Are you sure you want to delete this vehicle?')) {
       try {
-        await deleteVehicle(id);
-        setVehicles(vehicles.filter(v => v.id !== id));
+        await deleteVehicle(assetId);
+        setVehicles(vehicles.filter(v => v.asset_id !== assetId));
         toast.success('Vehicle deleted successfully');
       } catch (error) {
         toast.error('Failed to delete vehicle');
@@ -397,7 +370,7 @@ const VehicleRecords = () => {
     setLoading(true);
     try {
       if (editingVehicle) {
-        await updateVehicle(editingVehicle.id, formData);
+        await updateVehicle(editingVehicle.asset_id, formData);
         toast.success('Vehicle updated successfully');
       } else {
         await createVehicle(formData);
@@ -415,14 +388,12 @@ const VehicleRecords = () => {
 
   const handleExportExcel = () => {
     const exportData = filteredVehicles.map(v => ({
+      'Asset ID': v.asset_id,
+      'Chassis Number': v.chassis_number,
       'Plate Number': v.plate_number,
       'Model': v.model,
-      'Year': v.year,
-      'Capacity': v.capacity,
-      'Driver': v.driver,
-      'Status': v.status,
-      'Insurance Expiry': v.insurance_expiry,
-      'Last Service': v.last_service
+      'Staff Name': v.staff_name,
+      'Staff Email': v.staff_email
     }));
 
     if (exportData.length === 0) {
@@ -435,14 +406,12 @@ const VehicleRecords = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Vehicles');
 
     ws['!cols'] = [
+      { wch: 12 },
+      { wch: 20 },
       { wch: 15 },
       { wch: 18 },
-      { wch: 8 },
-      { wch: 12 },
       { wch: 15 },
-      { wch: 12 },
-      { wch: 16 },
-      { wch: 14 }
+      { wch: 25 }
     ];
 
     XLSX.writeFile(wb, `vehicles-export-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -452,12 +421,10 @@ const VehicleRecords = () => {
   return (
     <div className="space-y-6">
       <Header onExport={handleExportExcel} onAdd={handleAddVehicle} />
-      <StatsCards total={totalVehicles} active={activeVehicles} maintenance={underMaintenance} />
+      <StatsCards total={totalVehicles} active={totalVehicles} maintenance={0} />
       <SearchFilter
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
       />
       <VehicleTable
         vehicles={filteredVehicles}
