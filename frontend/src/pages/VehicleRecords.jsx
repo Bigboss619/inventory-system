@@ -533,6 +533,20 @@ const VehicleRecords = () => {
     setModalOpen(true);
   };
 
+  // Helper to format date for HTML input (YYYY-MM-DD)
+  const formatDateForInput = (date) => {
+    if (!date) return '';
+    if (typeof date === 'string') {
+      // Check if it's already in YYYY-MM-DD format
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+      // Try to parse and format
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      return d.toISOString().split('T')[0];
+    }
+    return '';
+  };
+
   // Fetch documents and maintenance for a vehicle
   const fetchDocsAndMaint = async (assetId) => {
     try {
@@ -543,15 +557,15 @@ const VehicleRecords = () => {
       // Transform to match form format
       const docs = (docsRes || []).map(d => ({
         name: d.name,
-        issueDate: d.issue_date || '',
-        expiryDate: d.expiry_date || '',
+        issueDate: formatDateForInput(d.issue_date),
+        expiryDate: formatDateForInput(d.expiry_date),
         status: d.status || 'active',
         reminderDays: d.reminder_days || 30
       }));
       const maint = (maintRes || []).map(m => ({
         maintenanceType: m.maintenance_type,
-        lastService: m.last_service || '',
-        nextDue: m.next_due || '',
+        lastService: formatDateForInput(m.last_service),
+        nextDue: formatDateForInput(m.next_due),
         cost: m.cost || '',
         reminderDays: m.reminder_days || 30,
         notes: m.notes || ''
