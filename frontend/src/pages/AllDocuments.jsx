@@ -1,39 +1,64 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiFileText, FiAlertTriangle, FiCheck, FiX, FiDownload, FiX as FiXIcon, FiEye, FiTruck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { FiLoader } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
-
-// Mock data - aggregating documents from all vehicles
-const MOCK_ALL_DOCUMENTS = [
-  { id: 1, vehicleId: 1, vehicleName: 'ABC-1234', document: 'Vehicle Insurance', type: 'Insurance', docNumber: 'INS-2026-001', issueDate: '2025-12-31', expiryDate: '2026-12-31', status: 'Active', reminderDays: 30 },
-  { id: 2, vehicleId: 1, vehicleName: 'ABC-1234', document: 'Vehicle Registration', type: 'Registration', docNumber: 'REG-2026-001', issueDate: '2025-12-31', expiryDate: '2027-12-31', status: 'Active', reminderDays: 90 },
-  { id: 3, vehicleId: 1, vehicleName: 'ABC-1234', document: 'Road Tax', type: 'Tax', docNumber: 'TAX-2026-001', issueDate: '2025-12-31', expiryDate: '2026-12-31', status: 'Active', reminderDays: 60 },
-  { id: 4, vehicleId: 2, vehicleName: 'XYZ-5678', document: 'Vehicle Insurance', type: 'Insurance', docNumber: 'INS-2026-002', issueDate: '2025-08-15', expiryDate: '2026-08-15', status: 'Active', reminderDays: 30 },
-  { id: 5, vehicleId: 2, vehicleName: 'XYZ-5678', document: 'Vehicle Registration', type: 'Registration', docNumber: 'REG-2026-002', issueDate: '2025-08-15', expiryDate: '2027-08-15', status: 'Active', reminderDays: 90 },
-  { id: 6, vehicleId: 3, vehicleName: 'DEF-9012', document: 'Vehicle Insurance', type: 'Insurance', docNumber: 'INS-2026-003', issueDate: '2025-06-30', expiryDate: '2026-06-30', status: 'Expiring Soon', reminderDays: 7 },
-  { id: 7, vehicleId: 3, vehicleName: 'DEF-9012', document: 'Vehicle Registration', type: 'Registration', docNumber: 'REG-2026-003', issueDate: '2025-06-30', expiryDate: '2026-06-30', status: 'Expiring Soon', reminderDays: 7 },
-  { id: 8, vehicleId: 3, vehicleName: 'DEF-9012', document: 'Road Tax', type: 'Tax', docNumber: 'TAX-2026-003', issueDate: '2025-06-01', expiryDate: '2026-06-01', status: 'Expired', reminderDays: 0 },
-  { id: 9, vehicleId: 4, vehicleName: 'GHI-3456', document: 'Vehicle Insurance', type: 'Insurance', docNumber: 'INS-2026-004', issueDate: '2026-01-31', expiryDate: '2027-01-31', status: 'Active', reminderDays: 30 },
-  { id: 10, vehicleId: 4, vehicleName: 'GHI-3456', document: 'Vehicle Registration', type: 'Registration', docNumber: 'REG-2026-004', issueDate: '2026-01-31', expiryDate: '2028-01-31', status: 'Active', reminderDays: 90 },
-  { id: 11, vehicleId: 5, vehicleName: 'JKL-7890', document: 'Vehicle Insurance', type: 'Insurance', docNumber: 'INS-2026-005', issueDate: '2025-09-20', expiryDate: '2026-09-20', status: 'Active', reminderDays: 30 },
-  { id: 12, vehicleId: 6, vehicleName: 'MNO-1122', document: 'Vehicle Insurance', type: 'Insurance', docNumber: 'INS-2025-006', issueDate: '2024-11-30', expiryDate: '2025-11-30', status: 'Expired', reminderDays: 0 },
-  { id: 13, vehicleId: 6, vehicleName: 'MNO-1122', document: 'Vehicle Registration', type: 'Registration', docNumber: 'REG-2025-006', issueDate: '2024-11-30', expiryDate: '2025-11-30', status: 'Expired', reminderDays: 0 },
-];
+import { getAllDocuments, getVehicles, updateDocument, deleteDocument, createDocument } from '../services/api';
 
 const STATUS_OPTIONS = ['All', 'Active', 'Expiring Soon', 'Expired'];
 const TYPE_OPTIONS = ['All', 'Insurance', 'Registration', 'Tax', 'Permit', 'Other'];
 
 const AllDocuments = () => {
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState(MOCK_ALL_DOCUMENTS);
+  const [documents, setDocuments] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+
+  // Fetch all documents and vehicles on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [docsData, vehiclesData] = await Promise.all([
+          getAllDocuments(),
+          getVehicles()
+        ]);
+        setVehicles(vehiclesData || []);
+
+        // Calculate status for each document based on expiry date
+        const today = new Date();
+        const docsWithStatus = (docsData || []).map(d => {
+          const expiry = d.expiry_date ? new Date(d.expiry_date) : null;
+          let status = 'Active';
+          let docStatus = 'Active';
+          if (expiry) {
+            const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+            if (daysUntilExpiry < 0) {
+              status = 'Expired';
+              docStatus = 'Expired';
+            } else if (daysUntilExpiry <= (d.reminder_days || 30)) {
+              status = 'Expiring Soon';
+              docStatus = 'Expiring Soon';
+            }
+          }
+          return { ...d, status, docStatus };
+        });
+
+        setDocuments(docsWithStatus);
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+        toast.error('Failed to load documents');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Stats
   const totalDocuments = documents.length;
@@ -44,11 +69,13 @@ const AllDocuments = () => {
   // Filtered documents
   const filteredDocuments = useMemo(() => {
     return documents.filter(d => {
-      const matchesSearch = d.vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.document.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.docNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      const vehicleName = d.vehicleName || d.vehicleAssetId || '';
+      const docName = d.name || '';
+      const matchesSearch = vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        docName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (d.name || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'All' || d.status === statusFilter;
-      const matchesType = typeFilter === 'All' || d.type === typeFilter;
+      const matchesType = typeFilter === 'All' || (d.name || '').includes(typeFilter);
       return matchesSearch && matchesStatus && matchesType;
     });
   }, [documents, searchQuery, statusFilter, typeFilter]);
@@ -63,60 +90,93 @@ const AllDocuments = () => {
     setModalOpen(true);
   };
 
-  const handleViewVehicle = (vehicleId) => {
-    navigate(`/documents/vehicles/${vehicleId}/documents`);
+  const handleViewVehicle = (assetId) => {
+    navigate(`/documents/vehicles?vehicle=${assetId}`);
   };
 
-  const handleDeleteDocument = (id) => {
+  const handleDeleteDocument = async (id) => {
     if (window.confirm('Are you sure you want to delete this document?')) {
-      setDocuments(documents.filter(d => d.id !== id));
-      toast.success('Document deleted successfully');
+      try {
+        await deleteDocument(id);
+        setDocuments(documents.filter(d => d.id !== id));
+        toast.success('Document deleted successfully');
+      } catch (error) {
+        console.error('Error deleting document:', error);
+        toast.error('Failed to delete document');
+      }
     }
   };
 
   const handleSaveDocument = async (formData) => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Calculate status based on expiry date
+      const today = new Date();
+      const expiry = formData.expiryDate ? new Date(formData.expiryDate) : null;
+      let status = 'Active';
+      if (expiry) {
+        const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        if (daysUntilExpiry < 0) {
+          status = 'Expired';
+        } else if (daysUntilExpiry <= (formData.reminderDays || 30)) {
+          status = 'Expiring Soon';
+        }
+      }
 
-    // Calculate status based on expiry date
-    const today = new Date();
-    const expiry = new Date(formData.expiryDate);
-    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    let status = 'Active';
-    if (daysUntilExpiry < 0) {
-      status = 'Expired';
-    } else if (daysUntilExpiry <= formData.reminderDays) {
-      status = 'Expiring Soon';
+      if (editingDocument) {
+        await updateDocument(editingDocument.id, {
+          name: formData.name,
+          issueDate: formData.issueDate,
+          expiryDate: formData.expiryDate,
+          status: status,
+          reminderDays: formData.reminderDays
+        });
+        setDocuments(documents.map(d =>
+          d.id === editingDocument.id ? { ...d, ...formData, status } : d
+        ));
+        toast.success('Document updated successfully');
+      } else {
+        await createDocument({
+          assetId: formData.vehicleAssetId,
+          name: formData.name,
+          issueDate: formData.issueDate,
+          expiryDate: formData.expiryDate,
+          status: status,
+          reminderDays: formData.reminderDays
+        });
+        toast.success('Document added successfully');
+        // Refresh documents
+        const docsData = await getAllDocuments();
+        const today = new Date();
+        const docsWithStatus = (docsData || []).map(d => {
+          const exp = d.expiry_date ? new Date(d.expiry_date) : null;
+          let docStatus = 'Active';
+          if (exp) {
+            const daysUntilExpiry = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+            if (daysUntilExpiry < 0) docStatus = 'Expired';
+            else if (daysUntilExpiry <= (d.reminder_days || 30)) docStatus = 'Expiring Soon';
+          }
+          return { ...d, status: docStatus, docStatus };
+        });
+        setDocuments(docsWithStatus);
+      }
+
+      setModalOpen(false);
+      setEditingDocument(null);
+    } catch (error) {
+      console.error('Error saving document:', error);
+      toast.error('Failed to save document');
+    } finally {
+      setLoading(false);
     }
-
-    if (editingDocument) {
-      setDocuments(documents.map(d =>
-        d.id === editingDocument.id ? { ...d, ...formData, status } : d
-      ));
-      toast.success('Document updated successfully');
-    } else {
-      const newDocument = {
-        id: Date.now(),
-        ...formData,
-        status
-      };
-      setDocuments([...documents, newDocument]);
-      toast.success('Document added successfully');
-    }
-
-    setLoading(false);
-    setModalOpen(false);
-    setEditingDocument(null);
   };
 
   const handleExportExcel = () => {
     const exportData = filteredDocuments.map(d => ({
-      'Vehicle': d.vehicleName,
-      'Document': d.document,
-      'Type': d.type,
-      'Doc Number': d.docNumber,
-      'Issue Date': d.issueDate,
-      'Expiry Date': d.expiryDate,
+      'Vehicle': d.vehicleName || d.vehicleAssetId,
+      'Document': d.name,
+      'Issue Date': d.issue_date,
+      'Expiry Date': d.expiry_date,
       'Status': d.status
     }));
 
@@ -132,8 +192,6 @@ const AllDocuments = () => {
     ws['!cols'] = [
       { wch: 12 }, // Vehicle
       { wch: 20 }, // Document
-      { wch: 12 }, // Type
-      { wch: 15 }, // Doc Number
       { wch: 12 }, // Issue Date
       { wch: 12 }, // Expiry Date
       { wch: 12 }  // Status
@@ -257,16 +315,22 @@ const AllDocuments = () => {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehicle</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Document</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Doc Number</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Doc #</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Issue Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Expiry Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Expiry</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredDocuments.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <FiLoader className="w-6 h-6 animate-spin mx-auto" />
+                  </td>
+                </tr>
+              ) : filteredDocuments.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No documents found</td>
                 </tr>
@@ -275,22 +339,22 @@ const AllDocuments = () => {
                   <tr key={d.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4 text-sm font-medium text-gray-900">
                       <button
-                        onClick={() => handleViewVehicle(d.vehicleId)}
+                        onClick={() => handleViewVehicle(d.vehicleAssetId)}
                         className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         <FiTruck className="w-4 h-4" />
-                        {d.vehicleName}
+                        {d.vehicleName || d.vehicleAssetId}
                       </button>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">{d.document}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{d.name}</td>
                     <td className="px-4 py-4 text-sm text-gray-700">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {d.type}
+                        {d.status || 'Active'}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">{d.docNumber}</td>
-                    <td className="px-4 py-4 text-sm text-gray-700">{d.issueDate}</td>
-                    <td className="px-4 py-4 text-sm text-gray-700">{d.expiryDate}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">-</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{d.issue_date}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{d.expiry_date}</td>
                     <td className="px-4 py-4 text-sm">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         d.status === 'Active' ? 'bg-green-100 text-green-800' :
@@ -303,7 +367,7 @@ const AllDocuments = () => {
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleViewVehicle(d.vehicleId)}
+                          onClick={() => handleViewVehicle(d.vehicleAssetId)}
                           className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View Vehicle Documents"
                         >
@@ -343,6 +407,7 @@ const AllDocuments = () => {
           }}
           onSave={handleSaveDocument}
           document={editingDocument}
+          vehicles={vehicles}
           loading={loading}
         />
       )}
@@ -351,54 +416,45 @@ const AllDocuments = () => {
 };
 
 // Document Modal Component
-const DocumentModal = ({ isOpen, onClose, onSave, document, loading }) => {
+const DocumentModal = ({ isOpen, onClose, onSave, document, vehicles, loading }) => {
   const [formData, setFormData] = useState({
-    vehicleId: document?.vehicleId || 1,
-    vehicleName: document?.vehicleName || 'ABC-1234',
-    document: document?.document || '',
-    type: document?.type || 'Insurance',
-    docNumber: document?.docNumber || '',
-    issueDate: document?.issueDate || '',
-    expiryDate: document?.expiryDate || '',
-    reminderDays: document?.reminderDays || 30
+    name: '',
+    issueDate: '',
+    expiryDate: '',
+    reminderDays: 30,
+    vehicleAssetId: ''
   });
 
   React.useEffect(() => {
-    if (isOpen) {
+    if (isOpen && document) {
       setFormData({
-        vehicleId: document?.vehicleId || 1,
-        vehicleName: document?.vehicleName || 'ABC-1234',
-        document: document?.document || '',
-        type: document?.type || 'Insurance',
-        docNumber: document?.docNumber || '',
-        issueDate: document?.issueDate || '',
-        expiryDate: document?.expiryDate || '',
-        reminderDays: document?.reminderDays || 30
+        name: document.name || '',
+        issueDate: document.issue_date || '',
+        expiryDate: document.expiry_date || '',
+        reminderDays: document.reminder_days || 30,
+        vehicleAssetId: document.vehicleAssetId || ''
+      });
+    } else if (isOpen && vehicles && vehicles.length > 0) {
+      setFormData({
+        name: '',
+        issueDate: '',
+        expiryDate: '',
+        reminderDays: 30,
+        vehicleAssetId: vehicles[0].asset_id
       });
     }
-  }, [isOpen, document]);
+  }, [isOpen, document, vehicles]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.document || !formData.docNumber || !formData.expiryDate) {
-      toast.error('Please fill in all required fields');
+    if (!formData.name || !formData.expiryDate) {
+      toast.error('Please fill in document name and expiry date');
       return;
     }
     onSave(formData);
   };
-
-  const vehicleOptions = [
-    { id: 1, name: 'ABC-1234' },
-    { id: 2, name: 'XYZ-5678' },
-    { id: 3, name: 'DEF-9012' },
-    { id: 4, name: 'GHI-3456' },
-    { id: 5, name: 'JKL-7890' },
-    { id: 6, name: 'MNO-1122' },
-  ];
-
-  const typeOptions = ['Insurance', 'Registration', 'Tax', 'Permit', 'Other'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -413,83 +469,58 @@ const DocumentModal = ({ isOpen, onClose, onSave, document, loading }) => {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          {!document && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
               <select
-                value={formData.vehicleId}
-                onChange={(e) => {
-                  const selected = vehicleOptions.find(v => v.id === parseInt(e.target.value));
-                  setFormData({ ...formData, vehicleId: parseInt(e.target.value), vehicleName: selected.name });
-                }}
+                value={formData.vehicleAssetId}
+                onChange={(e) => setFormData({ ...formData, vehicleAssetId: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                {vehicleOptions.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
+                {vehicles?.map(v => (
+                  <option key={v.asset_id} value={v.asset_id}>{v.name || v.asset_id}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {typeOptions.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Document Name *</label>
-              <input
-                type="text"
-                value={formData.document}
-                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-                placeholder="e.g. Vehicle Insurance"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Document Number *</label>
-              <input
-                type="text"
-                value={formData.docNumber}
-                onChange={(e) => setFormData({ ...formData, docNumber: e.target.value })}
-                placeholder="e.g. INS-2026-001"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
-              <input
-                type="date"
-                value={formData.issueDate}
-                onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
-              <input
-                type="date"
-                value={formData.expiryDate}
-                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Remind Before (Days)</label>
-              <input
-                type="number"
-                value={formData.reminderDays}
-                onChange={(e) => setFormData({ ...formData, reminderDays: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Document Name *</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g. Vehicle Insurance"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
-          <div className="flex gap-3 pt-2 col-span-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
+            <input
+              type="date"
+              value={formData.issueDate}
+              onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
+            <input
+              type="date"
+              value={formData.expiryDate}
+              onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Remind Before (Days)</label>
+            <input
+              type="number"
+              value={formData.reminderDays}
+              onChange={(e) => setFormData({ ...formData, reminderDays: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}

@@ -417,6 +417,29 @@ export const deleteVehicle = async (assetId) => {
   return response.json();
 };
 
+// ==================== ALL DOCUMENTS ====================
+
+export const getAllDocuments = async () => {
+  // Fetch all vehicles first, then fetch documents for each
+  const vehicles = await getVehicles();
+  const allDocs = [];
+
+  for (const vehicle of vehicles) {
+    const docs = await getVehicleDocuments(vehicle.asset_id);
+    if (docs && docs.length > 0) {
+      docs.forEach(doc => {
+        allDocs.push({
+          ...doc,
+          vehicleName: vehicle.name || vehicle.asset_id,
+          vehicleAssetId: vehicle.asset_id
+        });
+      });
+    }
+  }
+
+  return allDocs;
+};
+
 // ==================== VEHICLE DOCUMENTS ====================
 
 export const getVehicleDocuments = async (assetId) => {
