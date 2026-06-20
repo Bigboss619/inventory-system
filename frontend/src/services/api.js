@@ -493,6 +493,12 @@ export const deleteDocument = async (id) => {
   return response.json();
 };
 
+// Document Renewals API
+export const getDocumentRenewals = async (documentId) => {
+  const response = await fetch(`${API_URL}/vehicles/documents/${documentId}/renewals`);
+  return response.json();
+};
+
 // ==================== MAINTENANCE ====================
 
 export const getMaintenanceRecords = async (assetId) => {

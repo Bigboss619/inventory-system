@@ -4,7 +4,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiFileText, FiAlertTriangle, FiChe
 import toast from 'react-hot-toast';
 import { FiLoader } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
-import { getAllDocuments, getVehicles, updateDocument, deleteDocument, createDocument } from '../services/api';
+import { getAllDocuments, getVehicles, updateDocument, deleteDocument, createDocument, getDocumentRenewals } from '../services/api';
 
 const STATUS_OPTIONS = ['All', 'Active', 'Expiring Soon', 'Expired'];
 const TYPE_OPTIONS = ['All', 'Insurance', 'Registration', 'Tax', 'Permit', 'Other'];
@@ -424,6 +424,29 @@ const DocumentModal = ({ isOpen, onClose, onSave, document, vehicles, loading })
     reminderDays: 30,
     vehicleAssetId: ''
   });
+  const [renewals, setRenewals] = useState([]);
+  const [loadingRenewals, setLoadingRenewals] = useState(false);
+
+  // Fetch renewal history when editing an existing document
+  React.useEffect(() => {
+    const fetchRenewals = async () => {
+      if (document && document.id) {
+        setLoadingRenewals(true);
+        try {
+          const renewalsData = await getDocumentRenewals(document.id);
+          setRenewals(renewalsData || []);
+        } catch (error) {
+          console.error('Error fetching renewals:', error);
+          setRenewals([]);
+        } finally {
+          setLoadingRenewals(false);
+        }
+      } else {
+        setRenewals([]);
+      }
+    };
+    fetchRenewals();
+  }, [document]);
 
   React.useEffect(() => {
     if (isOpen && document) {
@@ -520,6 +543,38 @@ const DocumentModal = ({ isOpen, onClose, onSave, document, vehicles, loading })
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          {/* Renewal History - Show when editing existing document */}
+          {document && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-700 mb-2">Renewal History</p>
+              {loadingRenewals ? (
+                <p className="text-sm text-gray-500">Loading...</p>
+              ) : renewals.length > 0 ? (
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {renewals.map((renewal, index) => (
+                    <div key={index} className="text-sm flex justify-between items-center">
+                      <span className="text-gray-600">
+                        Renewal #{renewals.length - index}
+                      </span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-red-600">
+                          {renewal.old_expiry_date ? new Date(renewal.old_expiry_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                        <span className="text-gray-400">→</span>
+                        <span className="text-green-600">
+                          {renewal.new_expiry_date ? new Date(renewal.new_expiry_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No previous renewals</p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button
               type="button"

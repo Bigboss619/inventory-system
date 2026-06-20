@@ -346,51 +346,88 @@ router.put("/documents/:id", (req, res) => {
     const { id } = req.params;
     const { name, issueDate, expiryDate, status, reminderDays, uploadedBy, filePath } = req.body;
 
-    // Build update query dynamically
-    let updateFields = [];
-    let updateValues = [];
+    // First get current document to know old expiry date
+    const getSql = "SELECT expiry_date FROM vehicle_documents WHERE id = ?";
 
-    if (name) {
-        updateFields.push("name = ?");
-        updateValues.push(name);
-    }
-    if (issueDate !== undefined) {
-        updateFields.push("issue_date = ?");
-        updateValues.push(issueDate);
-    }
-    if (expiryDate !== undefined) {
-        updateFields.push("expiry_date = ?");
-        updateValues.push(expiryDate);
-    }
-    if (status) {
-        updateFields.push("status = ?");
-        updateValues.push(status);
-    }
-    if (reminderDays !== undefined) {
-        updateFields.push("reminder_days = ?");
-        updateValues.push(reminderDays);
-    }
-    if (uploadedBy) {
-        updateFields.push("uploaded_by = ?");
-        updateValues.push(uploadedBy);
-    }
-    if (filePath !== undefined) {
-        updateFields.push("file_path = ?");
-        updateValues.push(filePath);
-    }
-
-    if (updateFields.length === 0) {
-        return res.status(400).json({ message: "No fields to update" });
-    }
-
-    updateValues.push(id);
-    const sql = `UPDATE vehicle_documents SET ${updateFields.join(", ")} WHERE id = ?`;
-
-    db.query(sql, updateValues, (err, results) => {
+    db.query(getSql, [id], (err, results) => {
         if (err) {
-            return res.status(500).json({ message: "Error updating document", error: err });
+            return res.status(500).json({ message: "Error fetching document", error: err });
         }
-        res.json({ message: "Document updated successfully" });
+        if (results.length === 0) {
+            return res.status(404).json({ message: "Document not found" });
+        }
+
+        const oldExpiryDate = results[0].expiry_date;
+
+        // Build update query dynamically
+        let updateFields = [];
+        let updateValues = [];
+
+        if (name) {
+            updateFields.push("name = ?");
+            updateValues.push(name);
+        }
+        if (issueDate !== undefined) {
+            updateFields.push("issue_date = ?");
+            updateValues.push(issueDate);
+        }
+        if (expiryDate !== undefined) {
+            updateFields.push("expiry_date = ?");
+            updateValues.push(expiryDate);
+        }
+        if (status) {
+            updateFields.push("status = ?");
+            updateValues.push(status);
+        }
+        if (reminderDays !== undefined) {
+            updateFields.push("reminder_days = ?");
+            updateValues.push(reminderDays);
+        }
+        if (uploadedBy) {
+            updateFields.push("uploaded_by = ?");
+            updateValues.push(uploadedBy);
+        }
+        if (filePath !== undefined) {
+            updateFields.push("file_path = ?");
+            updateValues.push(filePath);
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({ message: "No fields to update" });
+        }
+
+        // If expiry date changed and new expiry date provided, create renewal record
+        const handleRenewal = (callback) => {
+            // Format old expiry date for comparison
+            const formatDate = (d) => d instanceof Date ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : d;
+            const oldDateStr = oldExpiryDate ? formatDate(oldExpiryDate) : null;
+
+            if (expiryDate && oldDateStr && expiryDate !== oldDateStr) {
+                const renewalSql = "INSERT INTO document_renewals (document_id, old_expiry_date, new_expiry_date) VALUES (?, ?, ?)";
+                db.query(renewalSql, [id, oldDateStr, expiryDate], (renewalErr) => {
+                    if (renewalErr) {
+                        console.error("Error creating renewal:", renewalErr);
+                    }
+                    callback();
+                });
+            } else {
+                callback();
+            }
+        };
+
+        updateValues.push(id);
+        const sql = `UPDATE vehicle_documents SET ${updateFields.join(", ")} WHERE id = ?`;
+
+        db.query(sql, updateValues, (updateErr, updateResults) => {
+            if (updateErr) {
+                return res.status(500).json({ message: "Error updating document", error: updateErr });
+            }
+
+            // Handle renewal if expiry date changed
+            handleRenewal(() => {
+                res.json({ message: "Document updated successfully" });
+            });
+        });
     });
 });
 
@@ -538,6 +575,40 @@ router.delete("/maintenance/:id", (req, res) => {
             return res.status(404).json({ message: "Maintenance record not found" });
         }
         res.json({ message: "Maintenance record deleted successfully" });
+    });
+});
+
+// ==================== DOCUMENT RENEWALS ====================
+
+// Get all renewals for a document
+router.get("/documents/:documentId/renewals", (req, res) => {
+    const { documentId } = req.params;
+    const sql = "SELECT * FROM document_renewals WHERE document_id = ? ORDER BY renewed_at DESC";
+
+    db.query(sql, [documentId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Error fetching renewals", error: err });
+        }
+        res.json(results);
+    });
+});
+
+// Create document renewal
+router.post("/documents/:documentId/renewals", (req, res) => {
+    const { documentId } = req.params;
+    const { oldExpiryDate, newExpiryDate, renewedBy } = req.body;
+
+    if (!newExpiryDate) {
+        return res.status(400).json({ message: "New expiry date is required" });
+    }
+
+    const sql = "INSERT INTO document_renewals (document_id, old_expiry_date, new_expiry_date, renewed_by) VALUES (?, ?, ?, ?)";
+
+    db.query(sql, [documentId, oldExpiryDate || null, newExpiryDate, renewedBy || null], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Error creating renewal", error: err });
+        }
+        res.status(201).json({ message: "Renewal created successfully", renewalId: results.insertId });
     });
 });
 
