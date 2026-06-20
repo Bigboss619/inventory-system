@@ -536,13 +536,21 @@ const VehicleRecords = () => {
   // Helper to format date for HTML input (YYYY-MM-DD)
   const formatDateForInput = (date) => {
     if (!date) return '';
+    // If string, extract date portion using regex
     if (typeof date === 'string') {
-      // Check if it's already in YYYY-MM-DD format
-      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
-      // Try to parse and format
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return '';
-      return d.toISOString().split('T')[0];
+      // Match YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS pattern and extract just the date
+      const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        return `${match[1]}-${match[2]}-${match[3]}`;
+      }
+      return date;
+    }
+    // If it's a Date object
+    if (date instanceof Date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
     return '';
   };

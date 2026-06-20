@@ -281,13 +281,20 @@ router.delete("/:assetId", (req, res) => {
 // Get all documents for a vehicle
 router.get("/:assetId/documents", (req, res) => {
     const { assetId } = req.params;
-    const sql = "SELECT * FROM vehicle_documents WHERE asset_id = ? ORDER BY id DESC";
+    const sql = "SELECT id, asset_id, name, issue_date, expiry_date, status, reminder_days, uploaded_by, created_at, updated_at FROM vehicle_documents WHERE asset_id = ? ORDER BY id DESC";
 
     db.query(sql, [assetId], (err, results) => {
         if (err) {
             return res.status(500).json({ message: "Error fetching documents", error: err });
         }
-        res.json(results);
+        // Convert date objects to YYYY-MM-DD strings
+        const formatDate = (d) => d instanceof Date ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : d;
+        const formatted = (results || []).map(r => ({
+            ...r,
+            issue_date: r.issue_date ? formatDate(r.issue_date) : null,
+            expiry_date: r.expiry_date ? formatDate(r.expiry_date) : null
+        }));
+        res.json(formatted);
     });
 });
 
@@ -409,13 +416,20 @@ router.delete("/documents/:id", (req, res) => {
 // Get all maintenance records for a vehicle
 router.get("/:assetId/maintenance", (req, res) => {
     const { assetId } = req.params;
-    const sql = "SELECT * FROM maintenance WHERE asset_id = ? ORDER BY id DESC";
+    const sql = "SELECT id, asset_id, maintenance_type, last_service, next_due, cost, reminder_days, notes, created_at, updated_at FROM maintenance WHERE asset_id = ? ORDER BY id DESC";
 
     db.query(sql, [assetId], (err, results) => {
         if (err) {
             return res.status(500).json({ message: "Error fetching maintenance records", error: err });
         }
-        res.json(results);
+        // Convert date objects to YYYY-MM-DD strings
+        const formatDate = (d) => d instanceof Date ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : d;
+        const formatted = (results || []).map(r => ({
+            ...r,
+            last_service: r.last_service ? formatDate(r.last_service) : null,
+            next_due: r.next_due ? formatDate(r.next_due) : null
+        }));
+        res.json(formatted);
     });
 });
 
