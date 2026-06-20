@@ -17,6 +17,34 @@ router.get("/", (req, res) => {
     });
 });
 
+// Get all maintenance records across all vehicles
+router.get("/all/maintenance", (req, res) => {
+    const sql = `
+        SELECT m.id, m.asset_id, m.maintenance_type, m.last_service, m.next_due, m.cost,
+               m.reminder_days, m.notes, m.created_at, m.updated_at,
+               v.name as vehicle_name
+        FROM maintenance m
+        LEFT JOIN vehicles v ON m.asset_id = v.asset_id
+        ORDER BY m.id DESC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Error fetching all maintenance records", error: err });
+        }
+        // Convert date objects to YYYY-MM-DD strings
+        const formatDate = (d) => d instanceof Date ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : d;
+        const formatted = (results || []).map(r => ({
+            ...r,
+            last_service: r.last_service ? formatDate(r.last_service) : null,
+            next_due: r.next_due ? formatDate(r.next_due) : null,
+            created_at: r.created_at ? formatDate(r.created_at) : null,
+            updated_at: r.updated_at ? formatDate(r.updated_at) : null
+        }));
+        res.json(formatted);
+    });
+});
+
 // Get single vehicle by asset_id
 router.get("/:assetId", (req, res) => {
     const { assetId } = req.params;

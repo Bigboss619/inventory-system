@@ -417,6 +417,13 @@ export const deleteVehicle = async (assetId) => {
   return response.json();
 };
 
+// ==================== ALL MAINTENANCE ====================
+
+export const getAllMaintenance = async () => {
+  const response = await fetch(`${API_URL}/vehicles/all/maintenance`);
+  return response.json();
+};
+
 // ==================== ALL DOCUMENTS ====================
 
 export const getAllDocuments = async () => {
