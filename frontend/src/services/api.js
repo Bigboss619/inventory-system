@@ -364,3 +364,55 @@ export const deleteStockOut = async (id) => {
   }
   return response.json();
 };
+
+// Vehicles API
+export const getVehicles = async () => {
+  const response = await fetch(`${API_URL}/vehicles`);
+  return response.json();
+};
+
+export const getVehicleById = async (id) => {
+  const response = await fetch(`${API_URL}/vehicles/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch vehicle');
+  }
+  return response.json();
+};
+
+export const createVehicle = async (data) => {
+  const response = await fetch(`${API_URL}/vehicles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create vehicle');
+  }
+  return response.json();
+};
+
+export const updateVehicle = async (id, data) => {
+  const response = await fetch(`${API_URL}/vehicles/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update vehicle');
+  }
+  return response.json();
+};
+
+export const deleteVehicle = async (id) => {
+  const response = await fetch(`${API_URL}/vehicles/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete vehicle');
+  }
+  return response.json();
+};

@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiTruck, FiDownload, FiX, FiFile, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from '../services/api';
 
 const STATUS_OPTIONS = ['All', 'Active', 'Maintenance', 'Inactive'];
 
@@ -121,7 +122,7 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
           ) : (
             vehicles.map((v) => (
               <tr key={v.id} className="hover:bg-gray-50">
-                <td className="px-4 py-4 text-sm font-medium text-gray-900">{v.plateNumber}</td>
+                <td className="px-4 py-4 text-sm font-medium text-gray-900">{v.plate_number}</td>
                 <td className="px-4 py-4 text-sm text-gray-700">{v.model}</td>
                 <td className="px-4 py-4 text-sm text-gray-700">{v.year}</td>
                 <td className="px-4 py-4 text-sm text-gray-700">{v.capacity}</td>
@@ -135,7 +136,7 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
                     {v.status}
                   </span>
                 </td>
-                <td className="px-4 py-4 text-sm text-gray-700">{v.insuranceExpiry}</td>
+                <td className="px-4 py-4 text-sm text-gray-700">{v.insurance_expiry}</td>
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <button
@@ -173,25 +174,25 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
 // VehicleModal Component
 const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
   const [formData, setFormData] = useState({
-    plateNumber: vehicle?.plateNumber || '',
+    plateNumber: vehicle?.plate_number || '',
     model: vehicle?.model || '',
     year: vehicle?.year || new Date().getFullYear(),
     capacity: vehicle?.capacity || '5 Seater',
     driver: vehicle?.driver || '',
     status: vehicle?.status || 'Active',
-    insuranceExpiry: vehicle?.insuranceExpiry || ''
+    insuranceExpiry: vehicle?.insurance_expiry || ''
   });
 
   React.useEffect(() => {
     if (isOpen) {
       setFormData({
-        plateNumber: vehicle?.plateNumber || '',
+        plateNumber: vehicle?.plate_number || '',
         model: vehicle?.model || '',
         year: vehicle?.year || new Date().getFullYear(),
         capacity: vehicle?.capacity || '5 Seater',
         driver: vehicle?.driver || '',
         status: vehicle?.status || 'Active',
-        insuranceExpiry: vehicle?.insuranceExpiry || ''
+        insuranceExpiry: vehicle?.insurance_expiry || ''
       });
     }
   }, [isOpen, vehicle]);
@@ -204,7 +205,17 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
       toast.error('Please fill in all required fields');
       return;
     }
-    onSave(formData);
+    // Convert camelCase to snake_case for API
+    const apiData = {
+      plateNumber: formData.plateNumber,
+      model: formData.model,
+      year: formData.year,
+      capacity: formData.capacity,
+      driver: formData.driver,
+      status: formData.status,
+      insuranceExpiry: formData.insuranceExpiry
+    };
+    onSave(apiData);
   };
 
   return (
@@ -319,19 +330,28 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
 // Main VehicleRecords Component
 const VehicleRecords = () => {
   const navigate = useNavigate();
-  const [vehicles, setVehicles] = useState([
-    { id: 1, plateNumber: 'ABC-1234', model: 'Toyota Camry', year: 2022, capacity: '5 Seater', driver: 'John Smith', status: 'Active', insuranceExpiry: '2026-12-31', lastService: '2026-05-10' },
-    { id: 2, plateNumber: 'XYZ-5678', model: 'Honda Civic', year: 2021, capacity: '5 Seater', driver: 'Sarah Johnson', status: 'Active', insuranceExpiry: '2026-08-15', lastService: '2026-04-20' },
-    { id: 3, plateNumber: 'DEF-9012', model: 'Ford Transit', year: 2020, capacity: '12 Seater', driver: 'Michael Brown', status: 'Maintenance', insuranceExpiry: '2026-06-30', lastService: '2026-06-01' },
-    { id: 4, plateNumber: 'GHI-3456', model: 'Toyota Hiace', year: 2023, capacity: '14 Seater', driver: 'Emily Davis', status: 'Active', insuranceExpiry: '2027-01-31', lastService: '2026-05-25' },
-    { id: 5, plateNumber: 'JKL-7890', model: 'Mitsubishi L200', year: 2022, capacity: 'Pickup', driver: 'David Wilson', status: 'Active', insuranceExpiry: '2026-09-20', lastService: '2026-03-15' },
-    { id: 6, plateNumber: 'MNO-1122', model: 'Nissan Sentra', year: 2021, capacity: '5 Seater', driver: 'Lisa Anderson', status: 'Inactive', insuranceExpiry: '2025-11-30', lastService: '2025-10-10' },
-  ]);
+  const [vehicles, setVehicles] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const fetchVehicles = async () => {
+    setLoading(true);
+    try {
+      const data = await getVehicles();
+      setVehicles(data || []);
+    } catch (error) {
+      toast.error('Failed to fetch vehicles');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const totalVehicles = vehicles.length;
   const activeVehicles = useMemo(() => vehicles.filter(v => v.status === 'Active').length, [vehicles]);
@@ -339,7 +359,7 @@ const VehicleRecords = () => {
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(v => {
-      const matchesSearch = v.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      const matchesSearch = v.plate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
         v.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
         v.driver.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'All' || v.status === statusFilter;
@@ -361,47 +381,48 @@ const VehicleRecords = () => {
     navigate(`/documents/vehicles/${vehicle.id}/documents`);
   };
 
-  const handleDeleteVehicle = (id) => {
+  const handleDeleteVehicle = async (id) => {
     if (window.confirm('Are you sure you want to delete this vehicle?')) {
-      setVehicles(vehicles.filter(v => v.id !== id));
-      toast.success('Vehicle deleted successfully');
+      try {
+        await deleteVehicle(id);
+        setVehicles(vehicles.filter(v => v.id !== id));
+        toast.success('Vehicle deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete vehicle');
+      }
     }
   };
 
   const handleSaveVehicle = async (formData) => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (editingVehicle) {
-      setVehicles(vehicles.map(v =>
-        v.id === editingVehicle.id ? { ...v, ...formData } : v
-      ));
-      toast.success('Vehicle updated successfully');
-    } else {
-      const newVehicle = {
-        id: Date.now(),
-        ...formData,
-        lastService: new Date().toISOString().split('T')[0]
-      };
-      setVehicles([...vehicles, newVehicle]);
-      toast.success('Vehicle added successfully');
+    try {
+      if (editingVehicle) {
+        await updateVehicle(editingVehicle.id, formData);
+        toast.success('Vehicle updated successfully');
+      } else {
+        await createVehicle(formData);
+        toast.success('Vehicle added successfully');
+      }
+      await fetchVehicles();
+      setModalOpen(false);
+      setEditingVehicle(null);
+    } catch (error) {
+      toast.error('Failed to save vehicle');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setModalOpen(false);
-    setEditingVehicle(null);
   };
 
   const handleExportExcel = () => {
     const exportData = filteredVehicles.map(v => ({
-      'Plate Number': v.plateNumber,
+      'Plate Number': v.plate_number,
       'Model': v.model,
       'Year': v.year,
       'Capacity': v.capacity,
       'Driver': v.driver,
       'Status': v.status,
-      'Insurance Expiry': v.insuranceExpiry,
-      'Last Service': v.lastService
+      'Insurance Expiry': v.insurance_expiry,
+      'Last Service': v.last_service
     }));
 
     if (exportData.length === 0) {
