@@ -139,7 +139,7 @@ router.post("/", (req, res) => {
 // Update vehicle
 router.put("/:assetId", (req, res) => {
     const { assetId } = req.params;
-    const { name, chassisNumber, plateNumber, model, staffName, staffEmail } = req.body;
+    const { name, chassisNumber, plateNumber, model, staffName, staffEmail, documents, maintenance } = req.body;
 
     // Check if vehicle exists
     const checkSql = "SELECT id FROM vehicles WHERE asset_id = ?";
@@ -180,8 +180,71 @@ router.put("/:assetId", (req, res) => {
             updateValues.push(staffEmail);
         }
 
+        const updateVehicle = () => {
+            // If there are documents or maintenance to update, handle them
+            if (documents || maintenance) {
+                // Delete old documents and re-insert new ones
+                if (documents) {
+                    const validDocuments = documents.filter(d => d && d.name && d.name.trim() !== '');
+                    // Delete existing documents first
+                    db.query("DELETE FROM vehicle_documents WHERE asset_id = ?", [assetId], (delErr) => {
+                        if (delErr) console.error("Error deleting documents:", delErr);
+                        // Insert new documents
+                        let docIndex = 0;
+                        const insertDocs = () => {
+                            if (docIndex >= validDocuments.length) {
+                                handleMaintenance();
+                                return;
+                            }
+                            const doc = validDocuments[docIndex];
+                            const docSql = "INSERT INTO vehicle_documents (asset_id, name, issue_date, expiry_date, status, reminder_days) VALUES (?, ?, ?, ?, ?, ?)";
+                            db.query(docSql, [assetId, doc.name, doc.issueDate || null, doc.expiryDate || null, doc.status || 'active', doc.reminderDays || 30], (docErr) => {
+                                if (docErr) console.error("Error updating document:", docErr);
+                                docIndex++;
+                                insertDocs();
+                            });
+                        };
+                        insertDocs();
+                    });
+                } else {
+                    handleMaintenance();
+                }
+
+                const handleMaintenance = () => {
+                    if (maintenance) {
+                        const validMaintenance = maintenance.filter(m => m && m.maintenanceType && m.maintenanceType.trim() !== '');
+                        // Delete existing maintenance and re-insert
+                        db.query("DELETE FROM maintenance WHERE asset_id = ?", [assetId], (delErr) => {
+                            if (delErr) console.error("Error deleting maintenance:", delErr);
+                            let maintIndex = 0;
+                            const insertMaint = () => {
+                                if (maintIndex >= validMaintenance.length) {
+                                    res.json({ message: "Vehicle updated successfully", assetId });
+                                    return;
+                                }
+                                const maint = validMaintenance[maintIndex];
+                                const maintSql = "INSERT INTO maintenance (asset_id, maintenance_type, last_service, next_due, cost, reminder_days, notes) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                                db.query(maintSql, [assetId, maint.maintenanceType, maint.lastService || null, maint.nextDue || null, maint.cost || null, maint.reminderDays || 30, maint.notes || null], (maintErr) => {
+                                    if (maintErr) console.error("Error updating maintenance:", maintErr);
+                                    maintIndex++;
+                                    insertMaint();
+                                });
+                            };
+                            insertMaint();
+                        });
+                    } else {
+                        res.json({ message: "Vehicle updated successfully", assetId });
+                    }
+                };
+            } else {
+                res.json({ message: "Vehicle updated successfully", assetId });
+            }
+        };
+
         if (updateFields.length === 0) {
-            return res.status(400).json({ message: "No fields to update" });
+            // No vehicle fields to update, just update docs/maintenance
+            updateVehicle();
+            return;
         }
 
         updateValues.push(assetId);
@@ -191,7 +254,7 @@ router.put("/:assetId", (req, res) => {
             if (err) {
                 return res.status(500).json({ message: "Error updating vehicle", error: err });
             }
-            res.json({ message: "Vehicle updated successfully" });
+            updateVehicle();
         });
     });
 });
