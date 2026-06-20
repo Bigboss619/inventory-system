@@ -165,7 +165,7 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
 );
 
 // VehicleModal Component
-const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
+const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading, fetchDocsAndMaint }) => {
   const [formData, setFormData] = useState({
     name: vehicle?.name || '',
     chassisNumber: vehicle?.chassis_number || '',
@@ -180,18 +180,37 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
   const [activeTab, setActiveTab] = useState('vehicle');
 
   React.useEffect(() => {
-    if (isOpen && vehicle) {
-      setFormData({
-        name: vehicle?.name || '',
-        chassisNumber: vehicle?.chassis_number || '',
-        plateNumber: vehicle?.plate_number || '',
-        model: vehicle?.model || '',
-        staffName: vehicle?.staff_name || '',
-        staffEmail: vehicle?.staff_email || '',
-        documents: [],
-        maintenance: []
-      });
-    }
+    const loadData = async () => {
+      if (isOpen && vehicle?.asset_id) {
+        // Fetch existing documents and maintenance
+        if (fetchDocsAndMaint) {
+          const { docs, maint } = await fetchDocsAndMaint(vehicle.asset_id);
+          setFormData({
+            name: vehicle?.name || '',
+            chassisNumber: vehicle?.chassis_number || '',
+            plateNumber: vehicle?.plate_number || '',
+            model: vehicle?.model || '',
+            staffName: vehicle?.staff_name || '',
+            staffEmail: vehicle?.staff_email || '',
+            documents: docs || [],
+            maintenance: maint || []
+          });
+        }
+      } else if (isOpen && !vehicle) {
+        // New vehicle - reset form
+        setFormData({
+          name: '',
+          chassisNumber: '',
+          plateNumber: '',
+          model: '',
+          staffName: '',
+          staffEmail: '',
+          documents: [],
+          maintenance: []
+        });
+      }
+    };
+    loadData();
   }, [isOpen, vehicle]);
 
   if (!isOpen) return null;
@@ -514,6 +533,36 @@ const VehicleRecords = () => {
     setModalOpen(true);
   };
 
+  // Fetch documents and maintenance for a vehicle
+  const fetchDocsAndMaint = async (assetId) => {
+    try {
+      const [docsRes, maintRes] = await Promise.all([
+        getVehicleDocuments(assetId),
+        getMaintenanceRecords(assetId)
+      ]);
+      // Transform to match form format
+      const docs = (docsRes || []).map(d => ({
+        name: d.name,
+        issueDate: d.issue_date || '',
+        expiryDate: d.expiry_date || '',
+        status: d.status || 'active',
+        reminderDays: d.reminder_days || 30
+      }));
+      const maint = (maintRes || []).map(m => ({
+        maintenanceType: m.maintenance_type,
+        lastService: m.last_service || '',
+        nextDue: m.next_due || '',
+        cost: m.cost || '',
+        reminderDays: m.reminder_days || 30,
+        notes: m.notes || ''
+      }));
+      return { docs, maint };
+    } catch (error) {
+      console.error('Error fetching docs/maintenance:', error);
+      return { docs: [], maint: [] };
+    }
+  };
+
   const handleViewDocuments = (vehicle) => {
     // Navigate to documents tab or open document modal
     navigate(`/vehicles/${vehicle.asset_id}/documents`);
@@ -608,6 +657,7 @@ const VehicleRecords = () => {
           onSave={handleSaveVehicle}
           vehicle={editingVehicle}
           loading={loading}
+          fetchDocsAndMaint={fetchDocsAndMaint}
         />
       )}
     </div>

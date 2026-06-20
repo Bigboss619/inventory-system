@@ -70,13 +70,14 @@ router.post("/", (req, res) => {
                 console.error("Error generating asset_id:", updateErr);
             }
 
-            // Filter out documents without a name
-            const validDocuments = Array.isArray(documents) ? documents.filter(d => d && d.name) : [];
-            // Filter out maintenance without a type
-            const validMaintenance = Array.isArray(maintenance) ? maintenance.filter(m => m && m.maintenanceType) : [];
+            // Filter out documents without a name (check for non-empty string)
+            const validDocuments = Array.isArray(documents) ? documents.filter(d => d && d.name && d.name.trim() !== '') : [];
+            // Filter out maintenance without a type (check for non-empty string)
+            const validMaintenance = Array.isArray(maintenance) ? maintenance.filter(m => m && m.maintenanceType && m.maintenanceType.trim() !== '') : [];
 
-            console.log("Valid documents to insert:", validDocuments.length);
-            console.log("Valid maintenance to insert:", validMaintenance.length);
+            console.log("=== AFTER FILTER ===");
+            console.log("validDocuments:", JSON.stringify(validDocuments));
+            console.log("validMaintenance:", JSON.stringify(validMaintenance));
 
             let docIndex = 0;
             const insertDocs = () => {
