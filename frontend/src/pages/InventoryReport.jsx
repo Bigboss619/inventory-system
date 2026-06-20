@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 // Components
@@ -12,6 +12,9 @@ import TopItems from '../components/reports/InventoryReport/TopItems';
 import LowStockAlert from '../components/reports/InventoryReport/LowStockAlert';
 import ExportActions from '../components/reports/InventoryReport/ExportActions';
 
+// API
+import { getItems, getCategories, getStockIn, getStockOut } from '../services/api';
+
 const InventoryReport = () => {
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -21,28 +24,163 @@ const InventoryReport = () => {
     stockType: '',
   });
 
-  // Mock data - in real app, these would come from API based on filters
-  const [categories] = useState([
-    { id: 1, name: 'Electronics' },
-    { id: 2, name: 'Office Supplies' },
-    { id: 3, name: 'Furniture' },
-    { id: 4, name: 'Stationery' },
-  ]);
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [items] = useState([
-    { id: 1, name: 'HP Laptop' },
-    { id: 2, name: 'Printer Toner' },
-    { id: 3, name: 'Keyboard' },
-    { id: 4, name: 'Mouse' },
-    { id: 5, name: 'Office Chair' },
-    { id: 6, name: 'Desk' },
-  ]);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const [staff] = useState([
-    { id: 1, name: 'John Doe' },
-    { id: 2, name: 'Jane Smith' },
-    { id: 3, name: 'Mike Johnson' },
-  ]);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [itemsData, categoriesData, stockInData, stockOutData] = await Promise.all([
+        getItems(),
+        getCategories(),
+        getStockIn(),
+        getStockOut()
+      ]);
+
+      setItems(itemsData || []);
+      setCategories(categoriesData || []);
+
+      // Store raw data for filtering
+      window.__reportData = {
+        stockIn: stockInData || [],
+        stockOut: stockOutData || []
+      };
+    } catch (error) {
+      toast.error('Failed to fetch report data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Computed data based on filters
+  const { reportData, summary, stockMovementData, categoryDistribution, topItems, lowStockItems } = useMemo(() => {
+    const { stockIn, stockOut } = window.__reportData || { stockIn: [], stockOut: [] };
+
+    // Apply date filters
+    const filterByDate = (records) => records.filter(r => {
+      const recordDate = r.transaction_date;
+      const matchesFrom = !filters.dateFrom || recordDate >= filters.dateFrom;
+      const matchesTo = !filters.dateTo || recordDate <= filters.dateTo;
+      return matchesFrom && matchesTo;
+    });
+
+    const filteredIn = filterByDate(stockIn);
+    const filteredOut = filterByDate(stockOut);
+
+    // Build report table data
+    const tableData = [
+      ...filteredIn.map(s => ({
+        date: s.transaction_date,
+        item: s.item_name || '-',
+        category: s.category_name || '-',
+        type: 'stock_in',
+        quantity: s.quantity,
+        staff: s.received_by_name || '-',
+      })),
+      ...filteredOut.map(s => ({
+        date: s.transaction_date,
+        item: s.item_name || '-',
+        category: s.category_name || '-',
+        type: 'stock_out',
+        quantity: s.quantity,
+        staff: s.issued_by_name || '-',
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Calculate summary
+    const totalStockIn = filteredIn.reduce((sum, s) => sum + (s.quantity || 0), 0);
+    const totalStockOut = filteredOut.reduce((sum, s) => sum + (s.quantity || 0), 0);
+
+    // Group by category for charts
+    const categoryMap = new Map();
+    [...filteredIn, ...filteredOut].forEach(record => {
+      const cat = record.category_name || 'Uncategorized';
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, { stockIn: 0, stockOut: 0, total: 0 });
+      }
+      const data = categoryMap.get(cat);
+      if (record.type === 'stock_in' || record.item_name) {
+        // Check if this came from stockIn or stockOut array
+        const isStockIn = filteredIn.some(s => s.id === record.id);
+        if (isStockIn) {
+          data.stockIn += record.quantity || 0;
+        } else {
+          data.stockOut += record.quantity || 0;
+        }
+      }
+      data.total += record.quantity || 0;
+    });
+
+    // Stock movement by category
+    const movement = Array.from(categoryMap.entries()).map(([label, data]) => ({
+      label,
+      stockIn: data.stockIn,
+      stockOut: data.stockOut
+    }));
+
+    // Category distribution
+    const total = movement.reduce((sum, m) => sum + m.stockIn + m.stockOut, 0);
+    const distribution = movement.map(m => ({
+      label: m.label,
+      value: total > 0 ? Math.round(((m.stockIn + m.stockOut) / total) * 100) : 0
+    }));
+
+    // Top items by stock out
+    const itemMap = new Map();
+    filteredOut.forEach(record => {
+      const itemName = record.item_name || '-';
+      if (!itemMap.has(itemName)) {
+        itemMap.set(itemName, { totalIssued: 0, quantity: 0 });
+      }
+      const data = itemMap.get(itemName);
+      data.totalIssued += record.quantity || 0;
+      data.quantity += record.quantity || 0;
+    });
+
+    const top = Array.from(itemMap.entries())
+      .map(([name, data]) => ({ name, totalIssued: data.totalIssued, remainingStock: 0 }))
+      .sort((a, b) => b.totalIssued - a.totalIssued)
+      .slice(0, 5);
+
+    // Low stock items (items with quantity < 10 in stock in that haven't been issued much)
+    const lowStock = Array.from(itemMap.entries())
+      .filter(([, data]) => data.totalIssued > 5)
+      .map(([name, data]) => ({
+        name,
+        currentStock: Math.max(0, data.quantity),
+        minLevel: 10
+      }))
+      .slice(0, 5);
+
+    return {
+      reportData: tableData,
+      summary: {
+        totalItems: items.length,
+        totalStockIn,
+        totalStockOut,
+        lowStockItems: lowStock.length
+      },
+      stockMovementData: movement,
+      categoryDistribution: distribution,
+      topItems: top,
+      lowStockItems: lowStock
+    };
+  }, [items, categories, filters]);
+
+  const staff = useMemo(() => {
+    const { stockIn, stockOut } = window.__reportData || { stockIn: [], stockOut: [] };
+    const staffSet = new Set();
+    [...stockIn, stockOut].forEach(s => {
+      if (s.received_by_name) staffSet.add(s.received_by_name);
+      if (s.issued_by_name) staffSet.add(s.issued_by_name);
+    });
+    return Array.from(staffSet).map(name => ({ id: name, name }));
+  }, []);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -72,73 +210,27 @@ const InventoryReport = () => {
     window.print();
   };
 
-  // Report data
-  const reportData = [
-    { date: '15/06/2026', item: 'HP Laptop', category: 'Electronics', type: 'stock_out', quantity: 2, staff: 'John Doe', issuedBy: 'Admin' },
-    { date: '16/06/2026', item: 'Printer Toner', category: 'Office Supplies', type: 'stock_in', quantity: 10, staff: '-', issuedBy: 'Admin' },
-    { date: '17/06/2026', item: 'Keyboard', category: 'Electronics', type: 'stock_out', quantity: 5, staff: 'Jane Smith', issuedBy: 'Admin' },
-    { date: '18/06/2026', item: 'Office Chair', category: 'Furniture', type: 'stock_in', quantity: 20, staff: '-', issuedBy: 'Admin' },
-    { date: '19/06/2026', item: 'Mouse', category: 'Electronics', type: 'stock_out', quantity: 3, staff: 'Mike Johnson', issuedBy: 'Admin' },
-    { date: '20/06/2026', item: 'Desk', category: 'Furniture', type: 'stock_out', quantity: 2, staff: 'John Doe', issuedBy: 'Admin' },
-    { date: '21/06/2026', item: 'Printer Toner', category: 'Office Supplies', type: 'stock_out', quantity: 4, staff: 'Jane Smith', issuedBy: 'Admin' },
-    { date: '22/06/2026', item: 'HP Laptop', category: 'Electronics', type: 'stock_in', quantity: 15, staff: '-', issuedBy: 'Admin' },
-  ];
-
-  // Summary data
-  const summary = {
-    totalItems: 156,
-    totalStockIn: 320,
-    totalStockOut: 145,
-    lowStockItems: 8,
-  };
-
-  // Stock movement data for chart
-  const stockMovementData = [
-    { label: 'Electronics', stockIn: 45, stockOut: 30 },
-    { label: 'Office Supplies', stockIn: 80, stockOut: 50 },
-    { label: 'Furniture', stockIn: 25, stockOut: 15 },
-    { label: 'Stationery', stockIn: 60, stockOut: 40 },
-  ];
-
-  // Category distribution data
-  const categoryDistribution = [
-    { label: 'Electronics', value: 40 },
-    { label: 'Office Supplies', value: 35 },
-    { label: 'Furniture', value: 15 },
-    { label: 'Stationery', value: 10 },
-  ];
-
-  // Top items data
-  const topItems = [
-    { name: 'HP Laptop', totalIssued: 25, remainingStock: 10 },
-    { name: 'Printer Toner', totalIssued: 40, remainingStock: 5 },
-    { name: 'Keyboard', totalIssued: 18, remainingStock: 12 },
-    { name: 'Mouse', totalIssued: 22, remainingStock: 8 },
-    { name: 'Office Chair', totalIssued: 15, remainingStock: 5 },
-  ];
-
-  // Low stock items
-  const lowStockItems = [
-    { name: 'Printer Toner', currentStock: 3, minLevel: 10 },
-    { name: 'Keyboard', currentStock: 2, minLevel: 5 },
-    { name: 'Office Chair', currentStock: 5, minLevel: 10 },
-  ];
-
   const generatedDate = new Date().toLocaleDateString('en-GB');
   const period = filters.dateFrom && filters.dateTo
     ? `${filters.dateFrom} - ${filters.dateTo}`
     : 'All Time';
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Loading report...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" id="printable-area">
-      {/* Report Header */}
       <ReportHeader
         generatedBy="Admin"
         generatedDate={generatedDate}
         period={period}
       />
 
-      {/* Filters */}
       <ReportFilters
         filters={filters}
         onFilterChange={handleFilterChange}
@@ -148,7 +240,6 @@ const InventoryReport = () => {
         onReset={handleReset}
       />
 
-      {/* Export Actions */}
       <div className="flex justify-end">
         <ExportActions
           onExportPDF={handleExportPDF}
@@ -157,19 +248,15 @@ const InventoryReport = () => {
         />
       </div>
 
-      {/* Summary Cards */}
       <SummaryCards summary={summary} />
 
-      {/* Report Table */}
       <ReportTable data={reportData} />
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <StockMovementChart data={stockMovementData} />
         <CategoryDistribution data={categoryDistribution} />
       </div>
 
-      {/* Top Items and Low Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TopItems data={topItems} />
         <LowStockAlert data={lowStockItems} />
