@@ -105,6 +105,7 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
       <table className="w-full">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset ID</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Chassis No.</th>
             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Plate No.</th>
@@ -117,11 +118,12 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
         <tbody className="divide-y divide-gray-200">
           {vehicles.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No vehicles found</td>
+              <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No vehicles found</td>
             </tr>
           ) : (
             vehicles.map((v) => (
               <tr key={v.id} className="hover:bg-gray-50">
+                <td className="px-4 py-4 text-sm font-medium text-gray-900">{v.name || '-'}</td>
                 <td className="px-4 py-4 text-sm font-medium text-gray-900">{v.asset_id}</td>
                 <td className="px-4 py-4 text-sm text-gray-700">{v.chassis_number}</td>
                 <td className="px-4 py-4 text-sm text-gray-700">{v.plate_number || '-'}</td>
@@ -165,23 +167,29 @@ const VehicleTable = ({ vehicles, onEdit, onDelete, onViewDocuments }) => (
 // VehicleModal Component
 const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
   const [formData, setFormData] = useState({
-    assetId: vehicle?.asset_id || '',
+    name: vehicle?.name || '',
     chassisNumber: vehicle?.chassis_number || '',
     plateNumber: vehicle?.plate_number || '',
     model: vehicle?.model || '',
     staffName: vehicle?.staff_name || '',
-    staffEmail: vehicle?.staff_email || ''
+    staffEmail: vehicle?.staff_email || '',
+    documents: [],
+    maintenance: []
   });
 
+  const [activeTab, setActiveTab] = useState('vehicle');
+
   React.useEffect(() => {
-    if (isOpen) {
+    if (isOpen && vehicle) {
       setFormData({
-        assetId: vehicle?.asset_id || '',
+        name: vehicle?.name || '',
         chassisNumber: vehicle?.chassis_number || '',
         plateNumber: vehicle?.plate_number || '',
         model: vehicle?.model || '',
         staffName: vehicle?.staff_name || '',
-        staffEmail: vehicle?.staff_email || ''
+        staffEmail: vehicle?.staff_email || '',
+        documents: [],
+        maintenance: []
       });
     }
   }, [isOpen, vehicle]);
@@ -190,19 +198,59 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.assetId || !formData.chassisNumber || !formData.model) {
-      toast.error('Please fill in all required fields (Asset ID, Chassis Number, Model)');
+    if (!formData.chassisNumber || !formData.model) {
+      toast.error('Please fill in all required fields (Chassis Number, Model)');
       return;
     }
     const apiData = {
-      assetId: formData.assetId,
+      name: formData.name || null,
       chassisNumber: formData.chassisNumber,
       plateNumber: formData.plateNumber || null,
       model: formData.model,
       staffName: formData.staffName || null,
       staffEmail: formData.staffEmail || null
     };
-    onSave(apiData);
+    onSave(apiData, formData.documents, formData.maintenance);
+  };
+
+  const addDocument = () => {
+    setFormData({
+      ...formData,
+      documents: [...formData.documents, { name: '', issueDate: '', expiryDate: '', status: 'active', reminderDays: 30 }]
+    });
+  };
+
+  const updateDocument = (index, field, value) => {
+    const updated = [...formData.documents];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, documents: updated });
+  };
+
+  const removeDocument = (index) => {
+    setFormData({
+      ...formData,
+      documents: formData.documents.filter((_, i) => i !== index)
+    });
+  };
+
+  const addMaintenance = () => {
+    setFormData({
+      ...formData,
+      maintenance: [...formData.maintenance, { maintenanceType: '', lastService: '', nextDue: '', cost: '', reminderDays: 30, notes: '' }]
+    });
+  };
+
+  const updateMaintenance = (index, field, value) => {
+    const updated = [...formData.maintenance];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, maintenance: updated });
+  };
+
+  const removeMaintenance = (index) => {
+    setFormData({
+      ...formData,
+      maintenance: formData.maintenance.filter((_, i) => i !== index)
+    });
   };
 
   return (
@@ -217,86 +265,201 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle, loading }) => {
             <FiX className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Asset ID *</label>
-            <input
-              type="text"
-              value={formData.assetId}
-              onChange={(e) => setFormData({ ...formData, assetId: e.target.value.toUpperCase() })}
-              placeholder="e.g. AST-001"
-              disabled={!!vehicle}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-            />
+        <div className="border-b border-gray-200">
+            <nav className="flex -mb-px">
+              <button
+                type="button"
+                onClick={() => setActiveTab('vehicle')}
+                className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'vehicle' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              >
+                Vehicle
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('documents')}
+                className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'documents' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              >
+                Documents ({formData.documents.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('maintenance')}
+                className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'maintenance' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              >
+                Maintenance ({formData.maintenance.length})
+              </button>
+            </nav>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number *</label>
-            <input
-              type="text"
-              value={formData.chassisNumber}
-              onChange={(e) => setFormData({ ...formData, chassisNumber: e.target.value.toUpperCase() })}
-              placeholder="e.g. JM1BK343551234567"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Plate Number</label>
-            <input
-              type="text"
-              value={formData.plateNumber}
-              onChange={(e) => setFormData({ ...formData, plateNumber: e.target.value.toUpperCase() })}
-              placeholder="e.g. ABC-1234"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Model *</label>
-            <input
-              type="text"
-              value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              placeholder="e.g. Toyota Camry"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
-            <input
-              type="text"
-              value={formData.staffName}
-              onChange={(e) => setFormData({ ...formData, staffName: e.target.value })}
-              placeholder="Staff name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Staff Email</label>
-            <input
-              type="email"
-              value={formData.staffEmail}
-              onChange={(e) => setFormData({ ...formData, staffEmail: e.target.value })}
-              placeholder="email@company.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {loading && <FiLoader className="w-4 h-4 animate-spin" />}
-              {vehicle ? 'Update Vehicle' : 'Save Vehicle'}
-            </button>
-          </div>
-        </form>
+
+          <form onSubmit={handleSubmit} className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            {activeTab === 'vehicle' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Company Car 1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Chassis Number *</label>
+                  <input
+                    type="text"
+                    value={formData.chassisNumber}
+                    onChange={(e) => setFormData({ ...formData, chassisNumber: e.target.value.toUpperCase() })}
+                    placeholder="e.g. JM1BK343551234567"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plate Number</label>
+                  <input
+                    type="text"
+                    value={formData.plateNumber}
+                    onChange={(e) => setFormData({ ...formData, plateNumber: e.target.value.toUpperCase() })}
+                    placeholder="e.g. ABC-1234"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Model *</label>
+                  <input
+                    type="text"
+                    value={formData.model}
+                    onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                    placeholder="e.g. Toyota Camry"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
+                  <input
+                    type="text"
+                    value={formData.staffName}
+                    onChange={(e) => setFormData({ ...formData, staffName: e.target.value })}
+                    placeholder="Staff name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Staff Email</label>
+                  <input
+                    type="email"
+                    value={formData.staffEmail}
+                    onChange={(e) => setFormData({ ...formData, staffEmail: e.target.value })}
+                    placeholder="email@company.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </>
+            )}
+
+            {activeTab === 'documents' && (
+              <div className="space-y-4">
+                {formData.documents.map((doc, index) => (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Document {index + 1}</span>
+                      <button type="button" onClick={() => removeDocument(index)} className="text-red-500 text-sm">Remove</button>
+                    </div>
+                    <input
+                      type="text"
+                      value={doc.name}
+                      onChange={(e) => updateDocument(index, 'name', e.target.value)}
+                      placeholder="Document name (e.g. Insurance)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={doc.issueDate}
+                        onChange={(e) => updateDocument(index, 'issueDate', e.target.value)}
+                        placeholder="Issue date"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="date"
+                        value={doc.expiryDate}
+                        onChange={(e) => updateDocument(index, 'expiryDate', e.target.value)}
+                        placeholder="Expiry date"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button type="button" onClick={addDocument} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500">
+                  + Add Document
+                </button>
+              </div>
+            )}
+
+            {activeTab === 'maintenance' && (
+              <div className="space-y-4">
+                {formData.maintenance.map((maint, index) => (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Maintenance {index + 1}</span>
+                      <button type="button" onClick={() => removeMaintenance(index)} className="text-red-500 text-sm">Remove</button>
+                    </div>
+                    <input
+                      type="text"
+                      value={maint.maintenanceType}
+                      onChange={(e) => updateMaintenance(index, 'maintenanceType', e.target.value)}
+                      placeholder="Type (e.g. Oil Change)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={maint.lastService}
+                        onChange={(e) => updateMaintenance(index, 'lastService', e.target.value)}
+                        placeholder="Last service"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="date"
+                        value={maint.nextDue}
+                        onChange={(e) => updateMaintenance(index, 'nextDue', e.target.value)}
+                        placeholder="Next due"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <input
+                      type="number"
+                      value={maint.cost}
+                      onChange={(e) => updateMaintenance(index, 'cost', e.target.value)}
+                      placeholder="Cost ($)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+                <button type="button" onClick={addMaintenance} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500">
+                  + Add Maintenance
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {loading && <FiLoader className="w-4 h-4 animate-spin" />}
+                {vehicle ? 'Update Vehicle' : 'Save Vehicle'}
+              </button>
+            </div>
+          </form>
       </div>
     </div>
   );
@@ -366,14 +529,14 @@ const VehicleRecords = () => {
     }
   };
 
-  const handleSaveVehicle = async (formData) => {
+  const handleSaveVehicle = async (formData, documents = [], maintenance = []) => {
     setLoading(true);
     try {
       if (editingVehicle) {
         await updateVehicle(editingVehicle.asset_id, formData);
         toast.success('Vehicle updated successfully');
       } else {
-        await createVehicle(formData);
+        await createVehicle({ ...formData, documents, maintenance });
         toast.success('Vehicle added successfully');
       }
       await fetchVehicles();

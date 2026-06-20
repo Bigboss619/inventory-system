@@ -33,18 +33,18 @@ router.get("/:assetId", (req, res) => {
     });
 });
 
-// Create new vehicle
+// Create new vehicle (asset_id is auto-generated)
 router.post("/", (req, res) => {
-    const { assetId, chassisNumber, plateNumber, model, staffName, staffEmail } = req.body;
+    const { name, chassisNumber, plateNumber, model, staffName, staffEmail, documents, maintenance } = req.body;
 
-    if (!assetId || !chassisNumber || !model) {
-        return res.status(400).json({ message: "Asset ID, chassis number, and model are required" });
+    if (!chassisNumber || !model) {
+        return res.status(400).json({ message: "Chassis number and model are required" });
     }
 
-    const sql = "INSERT INTO vehicles (asset_id, chassis_number, plate_number, model, staff_name, staff_email) VALUES (?, ?, ?, ?, ?, ?)";
+    const sql = "INSERT INTO vehicles (name, chassis_number, plate_number, model, staff_name, staff_email) VALUES (?, ?, ?, ?, ?, ?)";
 
     db.query(sql, [
-        assetId,
+        name || null,
         chassisNumber,
         plateNumber || null,
         model,
@@ -54,14 +54,53 @@ router.post("/", (req, res) => {
         if (err) {
             return res.status(500).json({ message: "Error creating vehicle", error: err });
         }
-        res.status(201).json({ message: "Vehicle created successfully", vehicleId: results.insertId });
+        const newAssetId = `AST-${String(results.insertId).padStart(3, '0')}`;
+        const updateSql = "UPDATE vehicles SET asset_id = ? WHERE id = ?";
+        db.query(updateSql, [newAssetId, results.insertId], (updateErr) => {
+            if (updateErr) {
+                console.error("Error generating asset_id:", updateErr);
+            }
+        });
+
+        // Insert documents if any
+        if (documents && documents.length > 0) {
+            documents.forEach(doc => {
+                const docSql = "INSERT INTO vehicle_documents (asset_id, name, issue_date, expiry_date, status, reminder_days) VALUES (?, ?, ?, ?, ?, ?)";
+                db.query(docSql, [
+                    newAssetId,
+                    doc.name,
+                    doc.issueDate || null,
+                    doc.expiryDate || null,
+                    doc.status || 'active',
+                    doc.reminderDays || 30
+                ]);
+            });
+        }
+
+        // Insert maintenance if any
+        if (maintenance && maintenance.length > 0) {
+            maintenance.forEach(maint => {
+                const maintSql = "INSERT INTO maintenance (asset_id, maintenance_type, last_service, next_due, cost, reminder_days, notes) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                db.query(maintSql, [
+                    newAssetId,
+                    maint.maintenanceType,
+                    maint.lastService || null,
+                    maint.nextDue || null,
+                    maint.cost || null,
+                    maint.reminderDays || 30,
+                    maint.notes || null
+                ]);
+            });
+        }
+
+        res.status(201).json({ message: "Vehicle created successfully", assetId: newAssetId });
     });
 });
 
 // Update vehicle
 router.put("/:assetId", (req, res) => {
     const { assetId } = req.params;
-    const { chassisNumber, plateNumber, model, staffName, staffEmail } = req.body;
+    const { name, chassisNumber, plateNumber, model, staffName, staffEmail } = req.body;
 
     // Check if vehicle exists
     const checkSql = "SELECT id FROM vehicles WHERE asset_id = ?";
@@ -77,6 +116,10 @@ router.put("/:assetId", (req, res) => {
         let updateFields = [];
         let updateValues = [];
 
+        if (name !== undefined) {
+            updateFields.push("name = ?");
+            updateValues.push(name);
+        }
         if (chassisNumber) {
             updateFields.push("chassis_number = ?");
             updateValues.push(chassisNumber);
