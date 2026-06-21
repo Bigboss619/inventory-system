@@ -157,7 +157,7 @@ const Items = () => {
         item={editingItem}
         categories={categories}
         loading={loading}
-        readOnly={userRole !== 'Super Admin'}
+        readOnly={userRole !== 'Super Admin' && userRole !== 'Inventory Officer'}
       />
     </div>
   );

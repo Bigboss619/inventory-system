@@ -181,7 +181,7 @@ const StockOut = () => {
         departments={departments}
         loading={loading}
         record={editingRecord}
-        readOnly={userRole !== 'Super Admin'}
+        readOnly={userRole !== 'Super Admin' && userRole !== 'Inventory Officer'}
       />
     </div>
   );
