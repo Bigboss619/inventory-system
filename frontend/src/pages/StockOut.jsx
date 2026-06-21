@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { getStockOut, createStockOut, updateStockOut, deleteStockOut, getItems, getStaff, getDepartments } from '../services/api';
+import { getStockOut, createStockOut, updateStockOut, deleteStockOut, getItems, getStaff, getDepartments, getUsers } from '../services/api';
 import StockOutHeader from '../stockOut/StockOutHeader';
 import StockOutStats from '../stockOut/StockOutStats';
 import StockOutFilters from '../stockOut/StockOutFilters';
@@ -82,7 +82,7 @@ const StockOut = () => {
   const handleSaveStock = async (formData) => {
     setLoading(true);
     try {
-      console.log('Saving StockOut:', formData);
+      // console.log('Saving StockOut:', formData);
 
       // Rename fields for backend
       const apiData = {

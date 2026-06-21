@@ -14,8 +14,8 @@ const StockOutStats = ({ stockOut }) => {
   };
 
   // Debug logging
-  console.log('Today:', today);
-  console.log('StockOut dates:', stockOut.map(s => ({ id: s.id, date: s.transaction_date, dateStr: getDateStr(s.transaction_date) })));
+  // console.log('Today:', today);
+  // console.log('StockOut dates:', stockOut.map(s => ({ id: s.id, date: s.transaction_date, dateStr: getDateStr(s.transaction_date) })));
 
   const todayIssued = stockOut
     .filter(s => getDateStr(s.transaction_date) === today)

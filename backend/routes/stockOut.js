@@ -15,7 +15,7 @@ router.get("/", (req, res) => {
         FROM stock_out s
         LEFT JOIN items i ON s.item_id = i.id
         LEFT JOIN departments d ON s.department_id = d.id
-        LEFT JOIN users req ON s.requested_by = req.id
+        LEFT JOIN staff req ON s.requested_by = req.id
         LEFT JOIN users iss ON s.issued_by = iss.id
         ORDER BY s.id DESC
     `;
@@ -63,26 +63,51 @@ router.post("/", (req, res) => {
         return res.status(401).json({ message: "Unauthorized - user ID not found" });
     }
 
-    console.log("Creating stock_out with:", { itemId, quantity, departmentId, requestedBy, issuedBy, note, transactionDate });
-
-    const sql = "INSERT INTO stock_out (item_id, quantity, department_id, requested_by, issued_by, note, transaction_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-    db.query(sql, [itemId, quantity, departmentId, requestedBy || null, issuedBy, note || null, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
-        if (err) {
-            console.error("StockOut POST Error:", err);
-            return res.status(500).json({ message: "Error creating stock out record", error: err.message });
+    // Validate issuedBy exists in users table
+    const checkUserSql = "SELECT id FROM users WHERE id = ?";
+    db.query(checkUserSql, [issuedBy], (userErr, userResults) => {
+        if (userErr || userResults.length === 0) {
+            return res.status(400).json({ message: "Issued by user not found in users table" });
         }
 
-        // Update item quantity (decrease)
-        const updateQtySql = "UPDATE items SET quantity = quantity - ? WHERE id = ?";
-        db.query(updateQtySql, [quantity, itemId], (updateErr) => {
-            if (updateErr) {
-                console.error("Error updating item quantity:", updateErr);
-            }
-        });
-
-        res.status(201).json({ message: "Stock out recorded successfully", stockOutId: results.insertId });
+        // Validate requestedBy in staff table (if provided)
+        if (requestedBy) {
+            const checkStaffSql = "SELECT id FROM staff WHERE id = ?";
+            db.query(checkStaffSql, [requestedBy], (staffErr, staffResults) => {
+                if (staffErr || staffResults.length === 0) {
+                    console.log("Requested by staff not found, using null");
+                    doInsert(null);
+                } else {
+                    doInsert(requestedBy);
+                }
+            });
+        } else {
+            doInsert(null);
+        }
     });
+
+    function doInsert(reqBy) {
+        console.log("Creating stock_out with:", { itemId, quantity, departmentId, requestedBy: reqBy, issuedBy, note, transactionDate });
+
+        const sql = "INSERT INTO stock_out (item_id, quantity, department_id, requested_by, issued_by, note, transaction_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        db.query(sql, [itemId, quantity, departmentId, reqBy, issuedBy, note || null, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
+            if (err) {
+                console.error("StockOut POST Error:", err);
+                return res.status(500).json({ message: "Error creating stock out record", error: err.message });
+            }
+
+            // Update item quantity (decrease)
+            const updateQtySql = "UPDATE items SET quantity = quantity - ? WHERE id = ?";
+            db.query(updateQtySql, [quantity, itemId], (updateErr) => {
+                if (updateErr) {
+                    console.error("Error updating item quantity:", updateErr);
+                }
+            });
+
+            res.status(201).json({ message: "Stock out recorded successfully", stockOutId: results.insertId });
+        });
+    }
 });
 
 // Update stock out record
