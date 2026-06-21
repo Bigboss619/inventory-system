@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { login as apiLogin, getCurrentUser } from '../services/api';
 
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -20,7 +19,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
   const [countdown, setCountdown] = useState(300);
-  const navigate = useNavigate();
 
   const timeoutRef = useRef(null);
   const warningTimeoutRef = useRef(null);
@@ -35,8 +33,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     localStorage.removeItem('authToken');
     localStorage.removeItem('lastActivity');
-    navigate('/');
-  }, [navigate]);
+    // Redirect to home - will be handled by ProtectedRoute
+    window.location.href = '/';
+  }, []);
 
   const resetActivityTimer = useCallback(() => {
     const now = Date.now();
