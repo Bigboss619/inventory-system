@@ -316,7 +316,6 @@ const AllDocuments = () => {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehicle</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Document</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Doc #</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Issue Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Expiry Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Expiry</th>
@@ -326,13 +325,13 @@ const AllDocuments = () => {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     <FiLoader className="w-6 h-6 animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : filteredDocuments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No documents found</td>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No documents found</td>
                 </tr>
               ) : (
                 filteredDocuments.map((d) => (
@@ -352,7 +351,6 @@ const AllDocuments = () => {
                         {d.status || 'Active'}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">-</td>
                     <td className="px-4 py-4 text-sm text-gray-700">{d.issue_date}</td>
                     <td className="px-4 py-4 text-sm text-gray-700">{d.expiry_date}</td>
                     <td className="px-4 py-4 text-sm">
