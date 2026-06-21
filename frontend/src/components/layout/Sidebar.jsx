@@ -58,6 +58,7 @@ const MENU_ITEMS = [
     ]
   },
   { title: 'User Management', icon: FiUsers, path: '/users' },
+  { title: 'Settings', icon: FiSettings, path: '/settings' },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -78,8 +79,8 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     // Filter menus by role configuration
     return MENU_ITEMS.filter(item => {
-      // Always allow Dashboard, Profile, Settings, Logout
-      if (item.title === 'Dashboard' || item.path === '/profile' || item.path === '/settings') {
+      // Always allow Dashboard, Profile (ettings is controlled by ROUTE_PERMISSIONS)
+      if (item.title === 'Dashboard' || item.path === '/profile') {
         return true;
       }
 
@@ -238,7 +239,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             <span>Profile</span>
           </NavLink>
 
-          <NavLink
+          {user?.role === ROLES.SUPER_ADMIN && (
+            <NavLink
             to="/settings"
             onClick={onClose}
             className={({ isActive }) =>
@@ -252,6 +254,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <FiSettings className="w-5 h-5" />
             <span>Settings</span>
           </NavLink>
+          )}
 
           <button
             onClick={handleLogout}
