@@ -69,13 +69,13 @@ const AllDocuments = () => {
   // Filtered documents
   const filteredDocuments = useMemo(() => {
     return documents.filter(d => {
-      const vehicleName = d.vehicleName || d.vehicleAssetId || '';
-      const docName = d.name || '';
+      const vehicleName = d.vehicle_name || d.vehicleName || d.vehicleAssetId || '';
+      const docName = d.document_name || d.name || '';
       const matchesSearch = vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         docName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (d.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+        docName.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'All' || d.status === statusFilter;
-      const matchesType = typeFilter === 'All' || (d.name || '').includes(typeFilter);
+      const matchesType = typeFilter === 'All' || docName.includes(typeFilter);
       return matchesSearch && matchesStatus && matchesType;
     });
   }, [documents, searchQuery, statusFilter, typeFilter]);
@@ -173,8 +173,8 @@ const AllDocuments = () => {
 
   const handleExportExcel = () => {
     const exportData = filteredDocuments.map(d => ({
-      'Vehicle': d.vehicleName || d.vehicleAssetId,
-      'Document': d.name,
+      'Vehicle': d.vehicle_name || d.vehicleName || d.asset_id,
+      'Document': d.document_name || d.name,
       'Issue Date': d.issue_date,
       'Expiry Date': d.expiry_date,
       'Status': d.status
@@ -339,14 +339,14 @@ const AllDocuments = () => {
                   <tr key={d.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4 text-sm font-medium text-gray-900">
                       <button
-                        onClick={() => handleViewVehicle(d.vehicleAssetId)}
+                        onClick={() => handleViewVehicle(d.asset_id)}
                         className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         <FiTruck className="w-4 h-4" />
-                        {d.vehicleName || d.vehicleAssetId}
+                        {d.vehicle_name || d.vehicleName || d.asset_id}
                       </button>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">{d.name}</td>
+                    <td className="px-4 py-4 text-sm text-gray-700">{d.document_name || d.name}</td>
                     <td className="px-4 py-4 text-sm text-gray-700">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {d.status || 'Active'}
@@ -367,7 +367,7 @@ const AllDocuments = () => {
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleViewVehicle(d.vehicleAssetId)}
+                          onClick={() => handleViewVehicle(d.asset_id)}
                           className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View Vehicle Documents"
                         >
