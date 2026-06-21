@@ -15,7 +15,7 @@ export const ROUTE_PERMISSIONS = {
   '/inventory/items': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER],
   '/inventory/stock-in': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER],
   '/inventory/stock-out': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER],
-  '/inventory/staff': [ROLES.SUPER_ADMIN],
+  '/inventory/staff': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER],
   '/inventory/history': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER],
   '/documents/vehicles': [ROLES.SUPER_ADMIN, ROLES.DOCUMENT_OFFICER],
   '/documents/all': [ROLES.SUPER_ADMIN, ROLES.DOCUMENT_OFFICER],
@@ -39,7 +39,8 @@ export const MENU_BY_ROLE = {
       'Categories',
       'Items',
       'Stock In',
-      'Stock Out'
+      'Stock Out',
+      'Staff'
     ]
   },
 
