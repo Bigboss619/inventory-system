@@ -660,6 +660,9 @@ router.post("/bulk", (req, res) => {
         errors: []
     };
 
+    // Track plate numbers in the uploaded file to detect duplicates
+    const seenPlates = new Set();
+
     // Process each record
     const processRecords = async () => {
         for (let i = 0; i < data.length; i++) {
@@ -704,6 +707,12 @@ router.post("/bulk", (req, res) => {
                 if (!plateNumber) {
                     throw new Error('Plate number is required');
                 }
+
+                // Check for duplicate in the same file
+                if (seenPlates.has(plateNumber)) {
+                    throw new Error(`Duplicate plate number '${plateNumber}' in uploaded file`);
+                }
+                seenPlates.add(plateNumber);
 
                 // Check if vehicle exists by plate_number
                 const checkVehicleSql = "SELECT asset_id FROM vehicles WHERE plate_number = ?";
