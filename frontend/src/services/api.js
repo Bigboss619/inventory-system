@@ -417,6 +417,21 @@ export const deleteVehicle = async (assetId) => {
   return response.json();
 };
 
+// ==================== BULK UPLOAD ====================
+
+export const bulkUploadVehicles = async (data, uploadedBy = 'Admin') => {
+  const response = await fetch(`${API_URL}/vehicles/bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data, uploadedBy }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to bulk upload');
+  }
+  return response.json();
+};
+
 // ==================== ALL MAINTENANCE ====================
 
 export const getAllMaintenance = async () => {

@@ -640,4 +640,153 @@ router.post("/documents/:documentId/renewals", (req, res) => {
     });
 });
 
+// ==================== BULK UPLOAD ====================
+
+// Bulk upload vehicles with documents and maintenance
+router.post("/bulk", (req, res) => {
+    const { data, uploadedBy } = req.body;
+
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        return res.status(400).json({ message: "No data provided" });
+    }
+
+    console.log("=== BULK UPLOAD ===");
+    console.log("Records:", data.length);
+    console.log("First record:", JSON.stringify(data[0]));
+
+    const results = {
+        success: 0,
+        failed: 0,
+        errors: []
+    };
+
+    // Process each record
+    const processRecords = async () => {
+        for (let i = 0; i < data.length; i++) {
+            const record = data[i];
+            const rowNum = i + 1;
+
+            try {
+                // Map template columns to DB fields (handle various possible column names)
+                const getValue = (obj, ...keys) => {
+                    for (const key of keys) {
+                        if (obj[key] !== undefined && obj[key] !== '') return obj[key];
+                    }
+                    return null;
+                };
+
+                const plateNumber = getValue(record, 'plate Number', 'plate_number', 'plate number', 'PLATE NUMBER');
+                const chassisNumber = getValue(record, 'Chasis Number', 'chasis_number', 'Chassis Number', 'chassis number', 'CHASIS NUMBER');
+                const vehicleName = getValue(record, 'Name of Vehicle', 'name', 'Name of Vehicle', 'NAME OF VEHICLE');
+                const vehicleDescription = getValue(record, 'Vehicle Description', 'vehicle description', 'Vehicle Description', 'VEHICLE DESCRIPTION');
+                const brand = getValue(record, 'Brand', 'brand', 'BRAND');
+                const staffEmail = getValue(record, 'staff_email', 'staff email', 'email', 'STAFF_EMAIL');
+                const sbu = getValue(record, 'SBU', 'sbu', 'SBU');
+                const yearAcquired = getValue(record, 'Year Acquired', 'year acquired', 'Year Acquired', 'YEAR ACQUIRED');
+                const color = getValue(record, 'Color', 'color', 'COLOR');
+
+                const roadWorthinessExpiry = getValue(record, 'Road Worthiness Expiry', 'road worthiness expiry', 'Road Worthiness Expiry', 'ROAD WORTHINESS EXPIRY');
+                const vehicleLicenseExpiry = getValue(record, 'Vehicle Lincense Expiry', 'Vehicle Lincense Expiry', 'vehicle license expiry', 'VEHICLE LINCENSE EXPIRY');
+                const proofOfOwnership = getValue(record, 'Proof of Ownership', 'proof of ownership', 'Proof of Ownership', 'PROOF OF OWNERSHIP');
+                const insuranceExpiry = getValue(record, 'Insurance Expiry', 'insurance expiry', 'Insurance Expiry', 'INSURANCE EXPIRY');
+
+                const lastServicedDate = getValue(record, 'Last Serviced Date', 'last serviced date', 'Last Serviced Date', 'LAST SERVICED DATE');
+                const nextServiceDate = getValue(record, 'Next Service Date', 'next service date', 'Next Service Date', 'NEXT SERVICE DATE');
+
+                const vehicleModel = brand || vehicleDescription || yearAcquired || 'Unknown';
+
+                if (!plateNumber) {
+                    throw new Error('Plate number is required');
+                }
+
+                // Check if vehicle exists by plate_number
+                const checkVehicleSql = "SELECT asset_id FROM vehicles WHERE plate_number = ?";
+                let assetId;
+
+                const vehicleExists = await new Promise((resolve, reject) => {
+                    db.query(checkVehicleSql, [plateNumber], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+
+                if (vehicleExists.length > 0) {
+                    // Use existing vehicle
+                    assetId = vehicleExists[0].asset_id;
+                } else {
+                    // Create new vehicle
+                    const insertVehicleSql = "INSERT INTO vehicles (name, chassis_number, plate_number, model, staff_name, staff_email) VALUES (?, ?, ?, ?, ?, ?)";
+
+                    await new Promise((resolve, reject) => {
+                        db.query(insertVehicleSql, [vehicleName, chassisNumber, plateNumber, vehicleModel, sbu, staffEmail], (err, results) => {
+                            if (err) reject(err);
+                            else resolve(results);
+                        });
+                    });
+
+                    // Get the generated asset_id
+                    const getAssetSql = "SELECT asset_id FROM vehicles WHERE plate_number = ?";
+                    const newVehicle = await new Promise((resolve, reject) => {
+                        db.query(getAssetSql, [plateNumber], (err, results) => {
+                            if (err) reject(err);
+                            else resolve(results);
+                        });
+                    });
+
+                    assetId = newVehicle[0].asset_id;
+                }
+
+                // Insert documents: Road Worthiness, Vehicle License, Proof of Ownership, Insurance
+                const documents = [
+                    { name: 'Road Worthiness', expiryDate: roadWorthinessExpiry },
+                    { name: 'Vehicle License', expiryDate: vehicleLicenseExpiry },
+                    { name: 'Proof of Ownership', expiryDate: proofOfOwnership },
+                    { name: 'Insurance', expiryDate: insuranceExpiry },
+                ];
+
+                for (const doc of documents) {
+                    if (doc.expiryDate) {
+                        const insertDocSql = "INSERT INTO vehicle_documents (asset_id, name, expiry_date, status, reminder_days, uploaded_by) VALUES (?, ?, ?, 'active', ?, ?)";
+                        await new Promise((resolve, reject) => {
+                            db.query(insertDocSql, [assetId, doc.name, doc.expiryDate, 30, uploadedBy || null], (err, results) => {
+                                if (err) reject(err);
+                                else resolve(results);
+                            });
+                        });
+                    }
+                }
+
+                // Insert maintenance if last serviced date provided
+                if (lastServicedDate || nextServiceDate) {
+                    const insertMaintSql = "INSERT INTO maintenance (asset_id, maintenance_type, last_service, next_due, reminder_days) VALUES (?, ?, ?, ?, ?)";
+                    await new Promise((resolve, reject) => {
+                        db.query(insertMaintSql, [assetId, 'General Service', lastServicedDate, nextServiceDate, 30], (err, results) => {
+                            if (err) reject(err);
+                            else resolve(results);
+                        });
+                    });
+                }
+
+                results.success++;
+            } catch (error) {
+                results.failed++;
+                results.errors.push({ row: rowNum, error: error.message });
+                console.error(`Error at row ${rowNum}:`, error.message);
+            }
+        }
+
+        console.log("=== BULK UPLOAD COMPLETE ===");
+        console.log("Success:", results.success, "Failed:", results.failed);
+
+        res.json({
+            message: `Bulk upload complete: ${results.success} successful, ${results.failed} failed`,
+            success: results.success,
+            failed: results.failed,
+            errors: results.errors
+        });
+    };
+
+    processRecords();
+});
+
 module.exports = router;

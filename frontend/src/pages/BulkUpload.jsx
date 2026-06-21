@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
 import { FiUpload, FiFile, FiCheck, FiX, FiDownload, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import { bulkUploadVehicles } from '../services/api';
+
+// Excel template columns for vehicle documents bulk upload
+const VEHICLE_TEMPLATE_HEADERS = [
+  'Name of Vehicle',
+  'plate Number',
+  'Chasis Number',
+  'Vehicle Description',
+  'Brand',
+  'staff_email',
+  'SBU',
+  'Road Worthiness Expiry',
+  'Vehicle Lincense Expiry',
+  'Proof of Ownership',
+  'Insurance Expiry',
+  'Year Acquired',
+  'Color',
+  'Last Serviced Date',
+  'Next Service Date',
+];
+
+const VEHICLE_TEMPLATE = VEHICLE_TEMPLATE_HEADERS.join(',');
 
 // Mock upload history
 const MOCK_UPLOADS = [
-  { id: 1, fileName: 'inventory_items.xlsx', type: 'Items', records: 150, uploadedBy: 'Admin', date: '2026-06-15', status: 'Success' },
-  { id: 2, fileName: 'staff_list.csv', type: 'Staff', records: 45, uploadedBy: 'Admin', date: '2026-06-10', status: 'Success' },
-  { id: 3, fileName: 'vehicle_records.xlsx', type: 'Vehicles', records: 25, uploadedBy: 'Admin', date: '2026-06-05', status: 'Success' },
-  { id: 4, fileName: 'categories_new.xlsx', type: 'Categories', records: 8, uploadedBy: 'Admin', date: '2026-05-28', status: 'Failed' },
-  { id: 5, fileName: 'items_backup.xlsx', type: 'Items', records: 200, uploadedBy: 'Admin', date: '2025-12-20', status: 'Success' },
-];
-
-const FILE_TYPES = [
-  { value: 'items', label: 'Items', template: 'Item Code, Name, Category, Quantity, Min Stock' },
-  { value: 'staff', label: 'Staff', template: 'Full Name, Department, Position, Email, Phone' },
-  { value: 'vehicles', label: 'Vehicles', template: 'Plate Number, Model, Year, Capacity, Driver' },
-  { value: 'categories', label: 'Categories', template: 'Name, Description' },
+  { id: 1, fileName: 'vehicles_batch_1.csv', type: 'Vehicles', records: 45, uploadedBy: 'Admin', date: '2026-06-18', status: 'Success' },
+  { id: 2, fileName: 'vehicles_batch_2.csv', type: 'Vehicles', records: 30, uploadedBy: 'Admin', date: '2026-06-15', status: 'Success' },
+  { id: 3, fileName: 'vehicles_batch_3.csv', type: 'Vehicles', records: 25, uploadedBy: 'Admin', date: '2026-06-10', status: 'Success' },
+  { id: 4, fileName: 'vehicles_failed.csv', type: 'Vehicles', records: 12, uploadedBy: 'Admin', date: '2026-06-05', status: 'Failed' },
 ];
 
 const BulkUpload = () => {
   const [uploads, setUploads] = useState(MOCK_UPLOADS);
-  const [selectedType, setSelectedType] = useState('items');
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -51,6 +65,58 @@ const BulkUpload = () => {
     }
   };
 
+  // Parse CSV/Excel file to array of objects
+  const parseFile = async (file) => {
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // Parse Excel file
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+            // Convert keys to lowercase
+            const normalized = json.map(row => {
+              const newRow = {};
+              Object.keys(row).forEach(key => {
+                newRow[key.toLowerCase().trim()] = row[key];
+              });
+              return newRow;
+            });
+            resolve(normalized);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    } else {
+      // Parse CSV file
+      const text = await file.text();
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) return [];
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        data.push(row);
+      }
+
+      return data;
+    }
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) {
       toast.error('Please select a file to upload');
@@ -58,29 +124,43 @@ const BulkUpload = () => {
     }
 
     setUploading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Simulate random success/failure
-    const success = Math.random() > 0.2;
+    try {
+      // Parse file (CSV or Excel)
+      const parsedData = await parseFile(selectedFile);
 
-    const newUpload = {
-      id: Date.now(),
-      fileName: selectedFile.name,
-      type: FILE_TYPES.find(t => t.value === selectedType)?.label || selectedType,
-      records: Math.floor(Math.random() * 100) + 10,
-      uploadedBy: 'Admin',
-      date: new Date().toISOString().split('T')[0],
-      status: success ? 'Success' : 'Failed'
-    };
+      if (parsedData.length === 0) {
+        toast.error('No data found in file');
+        setUploading(false);
+        return;
+      }
 
-    setUploads([newUpload, ...uploads]);
-    setUploading(false);
-    setSelectedFile(null);
+      // Call API
+      const result = await bulkUploadVehicles(parsedData, 'Admin');
 
-    if (success) {
-      toast.success('File uploaded successfully');
-    } else {
-      toast.error('Upload failed. Please check the file format.');
+      const newUpload = {
+        id: Date.now(),
+        fileName: selectedFile.name,
+        type: 'Vehicles',
+        records: result.success || parsedData.length,
+        uploadedBy: 'Admin',
+        date: new Date().toISOString().split('T')[0],
+        status: result.failed > 0 ? 'Partial' : 'Success'
+      };
+
+      setUploads([newUpload, ...uploads]);
+      setSelectedFile(null);
+
+      if (result.failed > 0) {
+        toast.success(`${result.success} records uploaded, ${result.failed} failed`);
+      } else {
+        toast.success(`Successfully uploaded ${result.success} records`);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Upload failed. Please check the file format.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -92,15 +172,16 @@ const BulkUpload = () => {
   };
 
   const downloadTemplate = () => {
-    const templateType = FILE_TYPES.find(t => t.value === selectedType);
-    const blob = new Blob([templateType?.template || ''], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedType}_template.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Template downloaded');
+    // Create Excel file with template headers
+    const worksheet = XLSX.utils.json_to_sheet([{}]);
+    // Add headers as first row
+    XLSX.utils.sheet_add_json(worksheet, [VEHICLE_TEMPLATE_HEADERS.reduce((acc, h) => ({ ...acc, [h]: h }), {})], { header: 1, skipHeader: true });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Vehicle Template');
+
+    // Generate and download
+    XLSX.writeFile(workbook, 'vehicle_template.xlsx');
+    toast.success('Vehicle template downloaded');
   };
 
   return (
@@ -109,7 +190,7 @@ const BulkUpload = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Bulk Upload</h1>
-          <p className="text-gray-500">Upload data in bulk</p>
+          <p className="text-gray-500">Upload vehicle and document data in bulk</p>
         </div>
       </div>
 
@@ -120,25 +201,15 @@ const BulkUpload = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload File</h2>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data Type</label>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <p className="text-sm text-gray-600 mb-2">Upload vehicle and document data in bulk</p>
+            <button
+              onClick={downloadTemplate}
+              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
             >
-              {FILE_TYPES.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
+              <FiDownload className="w-4 h-4" />
+              Download Vehicle Template
+            </button>
           </div>
-
-          <button
-            onClick={downloadTemplate}
-            className="text-sm text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-1"
-          >
-            <FiDownload className="w-4 h-4" />
-            Download {FILE_TYPES.find(t => t.value === selectedType)?.label} Template
-          </button>
 
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -222,9 +293,11 @@ const BulkUpload = () => {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                         upload.status === 'Success'
                           ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          : upload.status === 'Partial'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
                       }`}>
-                        {upload.status === 'Success' ? <FiCheck className="w-3 h-3 mr-1" /> : <FiX className="w-3 h-3 mr-1" />}
+                        {upload.status === 'Success' ? <FiCheck className="w-3 h-3 mr-1" /> : upload.status === 'Partial' ? <FiCheck className="w-3 h-3 mr-1" /> : <FiX className="w-3 h-3 mr-1" />}
                         {upload.status}
                       </span>
                     </td>
