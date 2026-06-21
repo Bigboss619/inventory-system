@@ -12,15 +12,7 @@ CREATE TABLE vehicles (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Trigger to auto-generate asset_id
-DELIMITER //
-CREATE TRIGGER before_insert_vehicle
-BEFORE INSERT ON vehicles
-FOR EACH ROW
-BEGIN
-  SET NEW.asset_id = CONCAT('AST-', LPAD(NEW.id, 3, '0'));
-END//
-DELIMITER ;
+-- No trigger - asset_id generated in backend
 
 -- Documents table
 CREATE TABLE vehicle_documents (

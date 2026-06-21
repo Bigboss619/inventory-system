@@ -670,14 +670,20 @@ router.post("/bulk", (req, res) => {
                 // Map template columns to DB fields (handle various possible column names)
                 const getValue = (obj, ...keys) => {
                     for (const key of keys) {
+                        // Check exact match
                         if (obj[key] !== undefined && obj[key] !== '') return obj[key];
+                        // Check case-insensitive match
+                        const lowerKey = key.toLowerCase();
+                        for (const k of Object.keys(obj)) {
+                            if (k.toLowerCase() === lowerKey && obj[k] !== '') return obj[k];
+                        }
                     }
                     return null;
                 };
 
                 const plateNumber = getValue(record, 'plate Number', 'plate_number', 'plate number', 'PLATE NUMBER');
-                const chassisNumber = getValue(record, 'Chasis Number', 'chasis_number', 'Chassis Number', 'chassis number', 'CHASIS NUMBER');
-                const vehicleName = getValue(record, 'Name of Vehicle', 'name', 'Name of Vehicle', 'NAME OF VEHICLE');
+                const chassisNumber = getValue(record, 'Chasis Number', 'chasis_number', 'chassis number', 'CHASIS NUMBER');
+                const vehicleName = getValue(record, 'Name of Vehicle', 'name of vehicle');
                 const vehicleDescription = getValue(record, 'Vehicle Description', 'vehicle description', 'Vehicle Description', 'VEHICLE DESCRIPTION');
                 const brand = getValue(record, 'Brand', 'brand', 'BRAND');
                 const staffEmail = getValue(record, 'staff_email', 'staff email', 'email', 'STAFF_EMAIL');
@@ -714,26 +720,27 @@ router.post("/bulk", (req, res) => {
                     // Use existing vehicle
                     assetId = vehicleExists[0].asset_id;
                 } else {
-                    // Create new vehicle
-                    const insertVehicleSql = "INSERT INTO vehicles (name, chassis_number, plate_number, model, staff_name, staff_email) VALUES (?, ?, ?, ?, ?, ?)";
+                    // Generate asset_id manually
+                    const countSql = "SELECT COUNT(*) as count FROM vehicles";
+                    const countResult = await new Promise((resolve, reject) => {
+                        db.query(countSql, (err, results) => {
+                            if (err) reject(err);
+                            else resolve(results);
+                        });
+                    });
+                    const nextNum = (countResult[0].count || 0) + 1;
+                    const newAssetId = `AST-${String(nextNum).padStart(3, '0')}`;
+
+                    const insertVehicleSql = "INSERT INTO vehicles (asset_id, name, chassis_number, plate_number, model, staff_name, staff_email) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
                     await new Promise((resolve, reject) => {
-                        db.query(insertVehicleSql, [vehicleName, chassisNumber, plateNumber, vehicleModel, sbu, staffEmail], (err, results) => {
+                        db.query(insertVehicleSql, [newAssetId, vehicleName, chassisNumber, plateNumber, vehicleModel, sbu, staffEmail], (err, results) => {
                             if (err) reject(err);
                             else resolve(results);
                         });
                     });
 
-                    // Get the generated asset_id
-                    const getAssetSql = "SELECT asset_id FROM vehicles WHERE plate_number = ?";
-                    const newVehicle = await new Promise((resolve, reject) => {
-                        db.query(getAssetSql, [plateNumber], (err, results) => {
-                            if (err) reject(err);
-                            else resolve(results);
-                        });
-                    });
-
-                    assetId = newVehicle[0].asset_id;
+                    assetId = newAssetId;
                 }
 
                 // Insert documents: Road Worthiness, Vehicle License, Proof of Ownership, Insurance
