@@ -25,16 +25,11 @@ const VEHICLE_TEMPLATE_HEADERS = [
 
 const VEHICLE_TEMPLATE = VEHICLE_TEMPLATE_HEADERS.join(',');
 
-// Mock upload history
-const MOCK_UPLOADS = [
-  { id: 1, fileName: 'vehicles_batch_1.csv', type: 'Vehicles', records: 45, uploadedBy: 'Admin', date: '2026-06-18', status: 'Success' },
-  { id: 2, fileName: 'vehicles_batch_2.csv', type: 'Vehicles', records: 30, uploadedBy: 'Admin', date: '2026-06-15', status: 'Success' },
-  { id: 3, fileName: 'vehicles_batch_3.csv', type: 'Vehicles', records: 25, uploadedBy: 'Admin', date: '2026-06-10', status: 'Success' },
-  { id: 4, fileName: 'vehicles_failed.csv', type: 'Vehicles', records: 12, uploadedBy: 'Admin', date: '2026-06-05', status: 'Failed' },
-];
-
 const BulkUpload = () => {
-  const [uploads, setUploads] = useState(MOCK_UPLOADS);
+  const [uploads, setUploads] = useState(() => {
+    const stored = localStorage.getItem('uploadHistory');
+    return stored ? JSON.parse(stored) : [];
+  });
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -149,6 +144,7 @@ const BulkUpload = () => {
       };
 
       setUploads([newUpload, ...uploads]);
+      localStorage.setItem('uploadHistory', JSON.stringify([newUpload, ...uploads]));
       setSelectedFile(null);
 
       if (result.failed > 0) {
@@ -166,7 +162,9 @@ const BulkUpload = () => {
 
   const handleDeleteUpload = (id) => {
     if (window.confirm('Are you sure you want to delete this upload record?')) {
-      setUploads(uploads.filter(u => u.id !== id));
+      const updated = uploads.filter(u => u.id !== id);
+      setUploads(updated);
+      localStorage.setItem('uploadHistory', JSON.stringify(updated));
       toast.success('Upload record deleted');
     }
   };
