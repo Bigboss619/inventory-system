@@ -4,22 +4,45 @@ import {
   FiAlertTriangle,
   FiTrendingUp,
   FiTrendingDown,
-  FiActivity
+  FiActivity,
+  FiFileText,
+  FiRefreshCw,
+  FiClock
 } from 'react-icons/fi';
-import { getItems, getStockIn, getStockOut } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { getItems, getStockIn, getStockOut, getAllDocuments } from '../services/api';
 
 const COLOR_CLASSES = {
   blue: 'bg-blue-100 text-blue-600',
   green: 'bg-green-100 text-green-600',
   red: 'bg-red-100 text-red-600',
+  yellow: 'bg-yellow-100 text-yellow-600',
+  purple: 'bg-purple-100 text-purple-600',
 };
 
-const Dashboard = ({ role = 'admin' }) => {
+// Helper to calculate days until expiry
+const getDaysLeft = (expiryDate) => {
+  if (!expiryDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(expiryDate);
+  const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  return diff;
+};
+
+const Dashboard = () => {
+  const { user } = useAuth();
+  const role = user?.role || 'Super Admin';
+
   const [stats, setStats] = useState({
     totalItems: 0,
     lowStockItems: 0,
     stockInToday: 0,
-    stockOutToday: 0
+    stockOutToday: 0,
+    totalDocuments: 0,
+    expiringSoon: 0,
+    expired: 0,
+    renewed: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -30,10 +53,11 @@ const Dashboard = ({ role = 'admin' }) => {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [itemsData, stockInData, stockOutData] = await Promise.all([
+      const [itemsData, stockInData, stockOutData, docsData] = await Promise.all([
         getItems(),
         getStockIn(),
-        getStockOut()
+        getStockOut(),
+        getAllDocuments()
       ]);
 
       const today = new Date().toLocaleDateString('en-CA');
@@ -48,6 +72,7 @@ const Dashboard = ({ role = 'admin' }) => {
       const items = Array.isArray(itemsData) ? itemsData : [];
       const stockIn = Array.isArray(stockInData) ? stockInData : [];
       const stockOut = Array.isArray(stockOutData) ? stockOutData : [];
+      const documents = Array.isArray(docsData) ? docsData : [];
 
       // Total Inventory Items
       const totalItems = items.length;
@@ -67,11 +92,27 @@ const Dashboard = ({ role = 'admin' }) => {
         .filter(s => getDateStr(s.transaction_date) === today)
         .reduce((sum, s) => sum + (s.quantity || 0), 0);
 
+      // Document Stats
+      const totalDocuments = documents.length;
+      const expiringSoon = documents.filter(d => {
+        const daysLeft = getDaysLeft(d.expiry_date);
+        return daysLeft !== null && daysLeft > 0 && daysLeft <= 30;
+      }).length;
+      const expired = documents.filter(d => {
+        const daysLeft = getDaysLeft(d.expiry_date);
+        return daysLeft !== null && daysLeft < 0;
+      }).length;
+      const renewed = documents.filter(d => d.doc_status === 'renewed').length;
+
       setStats({
         totalItems,
         lowStockItems,
         stockInToday,
-        stockOutToday
+        stockOutToday,
+        totalDocuments,
+        expiringSoon,
+        expired,
+        renewed
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -80,12 +121,40 @@ const Dashboard = ({ role = 'admin' }) => {
     }
   };
 
-  const STATS = [
+  // Show different stats based on role
+  const inventoryStats = [
     { label: 'Total Inventory Items', value: stats.totalItems, icon: FiBox, color: 'blue' },
     { label: 'Low Stock Items', value: stats.lowStockItems, icon: FiAlertTriangle, color: 'red' },
     { label: 'Stock In Today', value: stats.stockInToday, icon: FiTrendingUp, color: 'green' },
     { label: 'Stock Out Today', value: stats.stockOutToday, icon: FiTrendingDown, color: 'blue' },
   ];
+
+  const documentStats = [
+    { label: 'Total Documents', value: stats.totalDocuments, icon: FiFileText, color: 'blue' },
+    { label: 'Expiring Soon', value: stats.expiringSoon, icon: FiClock, color: 'yellow' },
+    { label: 'Expired', value: stats.expired, icon: FiAlertTriangle, color: 'red' },
+    { label: 'Renewed', value: stats.renewed, icon: FiRefreshCw, color: 'purple' },
+  ];
+
+  // Role-based display:
+  // Super Admin / Admin: all stats
+  // Document Officer: document stats only
+  // Inventory Officer: inventory stats only
+  const isSuperAdmin = role === 'Super Admin' || role === 'Admin';
+  const isDocumentOfficer = role === 'Document Officer';
+  const isInventoryOfficer = role === 'Inventory Officer';
+
+  let displayStats;
+  if (isSuperAdmin) {
+    displayStats = [...inventoryStats, ...documentStats];
+  } else if (isDocumentOfficer) {
+    displayStats = documentStats;
+  } else if (isInventoryOfficer) {
+    displayStats = inventoryStats;
+  } else {
+    displayStats = [...inventoryStats, ...documentStats];
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -103,7 +172,7 @@ const Dashboard = ({ role = 'admin' }) => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        {STATS.map((stat, index) => (
+        {displayStats.map((stat, index) => (
           <div
             key={index}
             className="bg-white rounded-xl p-5 shadow-sm border border-gray-100"
