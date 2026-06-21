@@ -1,4 +1,4 @@
-import { useAuth } from '../AuthProvider/AuthProvider';
+import { useAuth } from '../AuthContext';
 
 export default function TimeoutWarning() {
   const { showTimeoutWarning, countdown, stayLoggedIn, logout } = useAuth();
