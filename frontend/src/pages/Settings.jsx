@@ -8,12 +8,12 @@ import { useAuth } from '../context/AuthContext';
 const TABS = [
   { id: 'departments', label: 'Departments', icon: FiBriefcase },
   { id: 'users', label: 'User & Roles', icon: FiUser },
-  { id: 'system', label: 'System Config', icon: FiSettings },
-  { id: 'notifications', label: 'Notifications', icon: FiBell },
-  { id: 'email', label: 'Email Settings', icon: FiMail },
-  { id: 'inventory', label: 'Inventory', icon: FiDatabase },
-  { id: 'documents', label: 'Documents', icon: FiFileText },
-  { id: 'audit', label: 'Audit Logs', icon: FiClock },
+  // { id: 'system', label: 'System Config', icon: FiSettings },
+  // { id: 'notifications', label: 'Notifications', icon: FiBell },
+  // { id: 'email', label: 'Email Settings', icon: FiMail },
+  // { id: 'inventory', label: 'Inventory', icon: FiDatabase },
+  // { id: 'documents', label: 'Documents', icon: FiFileText },
+  // { id: 'audit', label: 'Audit Logs', icon: FiClock },
 ];
 
 const ROLES = ['Super Admin', 'Inventory Officer', 'Document Officer', 'Staff'];
@@ -59,12 +59,12 @@ const Settings = () => {
       {/* Tab Content */}
       {activeTab === 'departments' && <DepartmentSettings />}
       {activeTab === 'users' && <UserRolesSettings />}
-      {activeTab === 'system' && <SystemConfigSettings />}
-      {activeTab === 'notifications' && <NotificationSettings />}
-      {activeTab === 'email' && <EmailSettings />}
-      {activeTab === 'inventory' && <InventorySettings />}
-      {activeTab === 'documents' && <DocumentSettings />}
-      {activeTab === 'audit' && <AuditLogsSettings />}
+      {/* {activeTab === 'system' && <SystemConfigSettings />} */}
+      {/* {activeTab === 'notifications' && <NotificationSettings />} */}
+      {/* {activeTab === 'email' && <EmailSettings />} */}
+      {/* {activeTab === 'inventory' && <InventorySettings />} */}
+      {/* {activeTab === 'documents' && <DocumentSettings />} */}
+      {/* {activeTab === 'audit' && <AuditLogsSettings />} */}
     </div>
   );
 };
