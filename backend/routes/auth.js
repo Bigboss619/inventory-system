@@ -105,19 +105,19 @@ router.get("/me", (req, res) => {
 });
 
 // Setup admin user (run once)
-router.post("/setup", async (req, res) => {
-    const hashedPassword = await bcrypt.hash("admin123", 10);
+// router.post("/setup", async (req, res) => {
+//     const hashedPassword = await bcrypt.hash("admin123", 10);
 
-    const sql = `INSERT INTO users (first_name, last_name, email, password, phone, address, role, department)
-                VALUES ('Admin', 'User', 'admin@inventory.com', ?, '+234 801 234 5678', '123 Main Street, Lagos, Nigeria', 'Super Admin', 'Operations')
-                ON DUPLICATE KEY UPDATE password = ?`;
+//     const sql = `INSERT INTO users (first_name, last_name, email, password, phone, address, role, department)
+//                 VALUES ('Admin', 'User', 'admin@inventory.com', ?, '+234 801 234 5678', '123 Main Street, Lagos, Nigeria', 'Super Admin', 'Operations')
+//                 ON DUPLICATE KEY UPDATE password = ?`;
 
-    db.query(sql, [hashedPassword, hashedPassword], (err, results) => {
-        if (err) {
-            return res.status(500).json({ message: "Setup error", error: err });
-        }
-        res.json({ message: "Admin user created/updated successfully" });
-    });
-});
+//     db.query(sql, [hashedPassword, hashedPassword], (err, results) => {
+//         if (err) {
+//             return res.status(500).json({ message: "Setup error", error: err });
+//         }
+//         res.json({ message: "Admin user created/updated successfully" });
+//     });
+// });
 
 module.exports = router;
