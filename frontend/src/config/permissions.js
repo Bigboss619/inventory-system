@@ -40,7 +40,8 @@ export const MENU_BY_ROLE = {
       'Items',
       'Stock In',
       'Stock Out',
-      'Staff'
+      'Staff',
+      'History'
     ]
   },
 
