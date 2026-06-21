@@ -23,8 +23,6 @@ const VEHICLE_TEMPLATE_HEADERS = [
   'Next Service Date',
 ];
 
-const VEHICLE_TEMPLATE = VEHICLE_TEMPLATE_HEADERS.join(',');
-
 const BulkUpload = () => {
   const [uploads, setUploads] = useState(() => {
     const stored = localStorage.getItem('uploadHistory');
@@ -170,10 +168,8 @@ const BulkUpload = () => {
   };
 
   const downloadTemplate = () => {
-    // Create Excel file with template headers
-    const worksheet = XLSX.utils.json_to_sheet([{}]);
-    // Add headers as first row
-    XLSX.utils.sheet_add_json(worksheet, [VEHICLE_TEMPLATE_HEADERS.reduce((acc, h) => ({ ...acc, [h]: h }), {})], { header: 1, skipHeader: true });
+    // Create worksheet with headers as first row
+    const worksheet = XLSX.utils.aoa_to_sheet([VEHICLE_TEMPLATE_HEADERS]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Vehicle Template');
 
