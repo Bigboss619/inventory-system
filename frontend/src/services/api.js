@@ -371,6 +371,12 @@ export const getVehicles = async () => {
   return response.json();
 };
 
+// Get all documents across all vehicles
+export const getAllDocuments = async () => {
+  const response = await fetch(`${API_URL}/vehicles/all/documents`);
+  return response.json();
+};
+
 export const getVehicleById = async (id) => {
   const response = await fetch(`${API_URL}/vehicles/${id}`);
   if (!response.ok) {
@@ -437,29 +443,6 @@ export const bulkUploadVehicles = async (data, uploadedBy = 'Admin') => {
 export const getAllMaintenance = async () => {
   const response = await fetch(`${API_URL}/vehicles/all/maintenance`);
   return response.json();
-};
-
-// ==================== ALL DOCUMENTS ====================
-
-export const getAllDocuments = async () => {
-  // Fetch all vehicles first, then fetch documents for each
-  const vehicles = await getVehicles();
-  const allDocs = [];
-
-  for (const vehicle of vehicles) {
-    const docs = await getVehicleDocuments(vehicle.asset_id);
-    if (docs && docs.length > 0) {
-      docs.forEach(doc => {
-        allDocs.push({
-          ...doc,
-          vehicleName: vehicle.name || vehicle.asset_id,
-          vehicleAssetId: vehicle.asset_id
-        });
-      });
-    }
-  }
-
-  return allDocs;
 };
 
 // ==================== VEHICLE DOCUMENTS ====================

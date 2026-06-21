@@ -17,6 +17,25 @@ router.get("/", (req, res) => {
     });
 });
 
+// Get all documents across all vehicles
+router.get("/all/documents", (req, res) => {
+    const sql = `
+        SELECT d.id, d.asset_id, d.name as document_name, d.issue_date, d.expiry_date,
+               d.status as doc_status, d.reminder_days, d.uploaded_by, d.created_at as document_created,
+               v.name as vehicle_name, v.plate_number, v.staff_name, v.staff_email
+        FROM vehicle_documents d
+        LEFT JOIN vehicles v ON d.asset_id = v.asset_id
+        ORDER BY d.expiry_date ASC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Error fetching documents", error: err });
+        }
+        res.json(results);
+    });
+});
+
 // Get all maintenance records across all vehicles
 router.get("/all/maintenance", (req, res) => {
     const sql = `

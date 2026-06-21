@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { getAllDocuments, getVehicles } from '../services/api';
 
 // Components
 import DocReportHeader from '../components/reports/DocumentReport/DocReportHeader';
@@ -13,7 +14,27 @@ import RenewalTracking from '../components/reports/DocumentReport/RenewalTrackin
 import DocCharts from '../components/reports/DocumentReport/DocCharts';
 import ExportActions from '../components/reports/InventoryReport/ExportActions';
 
+// Helper to calculate days until expiry
+const getDaysLeft = (expiryDate) => {
+  if (!expiryDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(expiryDate);
+  const diff = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  return diff;
+};
+
+// Helper to get document status
+const getDocumentStatus = (daysLeft) => {
+  if (daysLeft === null) return 'unknown';
+  if (daysLeft < 0) return 'expired';
+  if (daysLeft <= 30) return 'expiring';
+  return 'active';
+};
+
 const DocumentReport = () => {
+  const [loading, setLoading] = useState(true);
+  const [documents, setDocuments] = useState([]);
   const [filters, setFilters] = useState({
     dateType: 'expiry',
     dateFrom: '',
@@ -23,18 +44,28 @@ const DocumentReport = () => {
     vehicle: '',
   });
 
-  // Mock data
-  const [categories] = useState([
-    { id: 1, name: 'Vehicle Documents' },
-    { id: 2, name: 'Land Documents' },
-    { id: 3, name: 'Contracts' },
-  ]);
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [docs, vehicles] = await Promise.all([
+          getAllDocuments(),
+          getVehicles()
+        ]);
+        setDocuments(docs || []);
+        setVehiclesList(vehicles || []);
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+        toast.error('Failed to load documents');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const [vehicles] = useState([
-    { id: 1, name: 'Toyota Hilux' },
-    { id: 2, name: 'Honda Civic' },
-    { id: 3, name: 'Ford Transit' },
-  ]);
+  const [vehiclesList, setVehiclesList] = useState([]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -65,75 +96,125 @@ const DocumentReport = () => {
     window.print();
   };
 
-  // Report data
-  const reportData = [
-    { document: 'Insurance', category: 'Vehicle Documents', vehicle: 'Toyota Hilux', staff: 'John Doe', issueDate: '01/01/2026', expiryDate: '01/01/2027', status: 'active', daysLeft: '180 days' },
-    { document: 'Road Worthiness', category: 'Vehicle Documents', vehicle: 'Toyota Hilux', staff: 'John Doe', issueDate: '01/01/2025', expiryDate: '01/04/2026', status: 'expired', daysLeft: '-20 days' },
-    { document: 'Vehicle License', category: 'Vehicle Documents', vehicle: 'Honda Civic', staff: 'Jane Smith', issueDate: '01/06/2025', expiryDate: '01/06/2026', status: 'expiring', daysLeft: '14 days' },
-    { document: 'Insurance', category: 'Vehicle Documents', vehicle: 'Ford Transit', staff: 'Mike Johnson', issueDate: '15/03/2026', expiryDate: '15/03/2027', status: 'active', daysLeft: '270 days' },
-    { document: 'Vehicle License', category: 'Vehicle Documents', vehicle: 'Toyota Hilux', staff: 'John Doe', issueDate: '20/06/2025', expiryDate: '20/06/2026', status: 'expiring', daysLeft: '2 days' },
-    { document: 'Land Title', category: 'Land Documents', vehicle: '-', staff: 'Admin', issueDate: '01/01/2020', expiryDate: '01/01/2030', status: 'active', daysLeft: '1340 days' },
-    { document: 'Service Contract', category: 'Contracts', vehicle: '-', staff: 'Admin', issueDate: '01/01/2025', expiryDate: '01/01/2026', status: 'renewed', daysLeft: '365 days' },
-    { document: 'Hackney Permit', category: 'Vehicle Documents', vehicle: 'Ford Transit', staff: 'Mike Johnson', issueDate: '01/04/2025', expiryDate: '01/04/2026', status: 'expired', daysLeft: '-78 days' },
-  ];
+  // Transform API data to report format
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB');
+  };
 
-  // Summary
+  // Process documents into report format
+  const reportData = documents.map(doc => {
+    const daysLeft = getDaysLeft(doc.expiry_date);
+    const status = getDocumentStatus(daysLeft);
+    return {
+      document: doc.document_name,
+      category: 'Vehicle Documents',
+      vehicle: doc.vehicle_name || doc.asset_id,
+      staff: doc.staff_name || doc.staff_email || '-',
+      issueDate: formatDate(doc.issue_date),
+      expiryDate: formatDate(doc.expiry_date),
+      status: status,
+      daysLeft: daysLeft !== null ? `${daysLeft} days` : '-',
+      assetId: doc.asset_id,
+      docId: doc.id
+    };
+  });
+
+  // Calculate summary from real data
+  const totalDocs = documents.length;
+  const activeCount = documents.filter(d => getDocumentStatus(getDaysLeft(d.expiry_date)) === 'active').length;
+  const expiringCount = documents.filter(d => getDocumentStatus(getDaysLeft(d.expiry_date)) === 'expiring').length;
+  const expiredCount = documents.filter(d => getDocumentStatus(getDaysLeft(d.expiry_date)) === 'expired').length;
+  const renewedCount = documents.filter(d => d.doc_status === 'renewed').length;
+
   const summary = {
-    totalDocuments: 120,
-    active: 80,
-    expiringSoon: 25,
-    expired: 10,
-    renewed: 5,
+    totalDocuments: totalDocs,
+    active: activeCount,
+    expiringSoon: expiringCount,
+    expired: expiredCount,
+    renewed: renewedCount,
   };
 
   // Expiry status breakdown
   const expiryStatusData = [
-    { status: 'active', label: 'Active', value: 80 },
-    { status: 'expiring', label: 'Expiring Soon', value: 25 },
-    { status: 'expired', label: 'Expired', value: 10 },
-    { status: 'renewed', label: 'Renewed', value: 5 },
+    { status: 'active', label: 'Active', value: activeCount },
+    { status: 'expiring', label: 'Expiring Soon', value: expiringCount },
+    { status: 'expired', label: 'Expired', value: expiredCount },
+    { status: 'renewed', label: 'Renewed', value: renewedCount },
   ];
 
-  // Critical alerts
-  const criticalAlerts = [
-    { document: 'Insurance', vehicle: 'Toyota Hilux', expiryDate: '20/06/2026', daysLeft: '2 days', priority: 'high' },
-    { document: 'Vehicle License', vehicle: 'Honda Civic', expiryDate: '25/06/2026', daysLeft: '7 days', priority: 'medium' },
-    { document: 'Road Worthiness', vehicle: 'Ford Transit', expiryDate: '18/06/2026', daysLeft: '10 days', priority: 'medium' },
-  ];
+  // Critical alerts (documents expiring within 30 days)
+  const criticalAlerts = documents
+    .filter(doc => {
+      const daysLeft = getDaysLeft(doc.expiry_date);
+      return daysLeft !== null && daysLeft <= 30 && daysLeft >= 0;
+    })
+    .sort((a, b) => getDaysLeft(a.expiry_date) - getDaysLeft(b.expiry_date))
+    .slice(0, 10)
+    .map(doc => {
+      const daysLeft = getDaysLeft(doc.expiry_date);
+      return {
+        document: doc.document_name,
+        vehicle: doc.vehicle_name || doc.asset_id,
+        expiryDate: formatDate(doc.expiry_date),
+        daysLeft: `${daysLeft} days`,
+        priority: daysLeft <= 7 ? 'high' : daysLeft <= 14 ? 'medium' : 'low'
+      };
+    });
 
   // Top expiring by vehicle
-  const topExpiring = [
-    { vehicle: 'Toyota Hilux', count: 5 },
-    { vehicle: 'Honda Civic', count: 3 },
-    { vehicle: 'Ford Transit', count: 2 },
+  const vehicleCounts = {};
+  documents.forEach(doc => {
+    const daysLeft = getDaysLeft(doc.expiry_date);
+    if (daysLeft !== null && daysLeft <= 30) {
+      const vName = doc.vehicle_name || doc.asset_id;
+      vehicleCounts[vName] = (vehicleCounts[vName] || 0) + 1;
+    }
+  });
+  const topExpiring = Object.entries(vehicleCounts)
+    .map(([vehicle, count]) => ({ vehicle, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // Renewal tracking (from API) - placeholder for now
+  const renewalTracking = [];
+
+  // Charts data - count by document type
+  const docTypeCounts = {};
+  documents.forEach(doc => {
+    const type = doc.document_name || 'Other';
+    docTypeCounts[type] = (docTypeCounts[type] || 0) + 1;
+  });
+  const categoryData = Object.entries(docTypeCounts)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const monthlyRenewals = []; // Empty for now
+
+  // Categories for filter dropdown
+  const categories = [
+    { id: 1, name: 'Vehicle Documents' },
   ];
 
-  // Renewal tracking
-  const renewalTracking = [
-    { document: 'Service Contract', previousExpiry: '01/01/2026', newExpiry: '01/01/2027', renewedBy: 'Admin', date: '15/06/2026' },
-    { document: 'Insurance', previousExpiry: '01/01/2026', newExpiry: '01/01/2027', renewedBy: 'John Doe', date: '10/06/2026' },
-  ];
-
-  // Charts data
-  const categoryData = [
-    { label: 'Vehicle Documents', value: 85 },
-    { label: 'Land Documents', value: 20 },
-    { label: 'Contracts', value: 15 },
-  ];
-
-  const monthlyRenewals = [
-    { month: 'Jan', value: 5 },
-    { month: 'Feb', value: 8 },
-    { month: 'Mar', value: 12 },
-    { month: 'Apr', value: 6 },
-    { month: 'May', value: 10 },
-    { month: 'Jun', value: 8 },
-  ];
+  // Vehicles for filter dropdown
+  const vehicles = vehiclesList.map(v => ({
+    id: v.id,
+    name: v.name || v.asset_id
+  }));
 
   const generatedDate = new Date().toLocaleDateString('en-GB');
   const period = filters.dateFrom && filters.dateTo
     ? `${filters.dateFrom} - ${filters.dateTo}`
     : 'All Time';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" id="printable-area">
