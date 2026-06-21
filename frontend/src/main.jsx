@@ -29,6 +29,7 @@ const Users = lazy(() => import('./pages/Users'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
+const ProtectedRoute = lazy(() => import('./components/routes/ProtectedRoute'));
 
 
 const router = createBrowserRouter([
@@ -40,126 +41,126 @@ const router = createBrowserRouter([
       { path: '/', element: <Home /> },
       {
         path: '/dashboard',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/dashboard', element: <Dashboard /> }
         ]
       },
       {
         path: '/inventory/categories',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/inventory/categories', element: <Categories /> }
         ]
       },
       {
         path: '/inventory/items',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/inventory/items', element: <Items /> }
         ]
       },
       {
         path: '/inventory/stock-in',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/inventory/stock-in', element: <StockIn /> }
         ]
       },
       {
         path: '/inventory/stock-out',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/inventory/stock-out', element: <StockOut /> }
         ]
       },
       {
         path: '/inventory/staff',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/inventory/staff', element: <Staff /> }
         ]
       },
       {
         path: '/inventory/history',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/inventory/history', element: <History /> }
         ]
       },
       {
         path: '/documents/vehicles',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/documents/vehicles', element: <VehicleRecords /> }
         ]
       },
       {
         path: '/documents/vehicles/:vehicleId/documents',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/documents/vehicles/:vehicleId/documents', element: <VehicleDocuments /> }
         ]
       },
       {
         path: '/documents/upload',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/documents/upload', element: <BulkUpload /> }
         ]
       },
       {
         path: '/documents/reminders',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/documents/reminders', element: <DocumentReminder /> }
         ]
       },
       {
         path: '/documents/maintenance',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/documents/maintenance', element: <MaintenanceTracker /> }
         ]
       },
       {
         path: '/documents/all',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/documents/all', element: <AllDocuments /> }
         ]
       },
       {
         path: '/profile',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/profile', element: <Profile /> }
         ]
       },
       {
         path: '/settings',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/settings', element: <Settings /> }
         ]
       },
       {
         path: '/reports/inventory',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/reports/inventory', element: <InventoryReport /> }
         ]
       },
       {
         path: '/reports/documents',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/reports/documents', element: <DocumentReport /> }
         ]
       },
       {
         path: '/users',
-        element: <DashboardLayout />,
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/users', element: <Users /> }
         ]
