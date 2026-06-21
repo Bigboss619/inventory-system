@@ -72,15 +72,12 @@ const StockIn = () => {
   const handleSaveStock = async (formData) => {
     setLoading(true);
     try {
-      // Get current user from localStorage
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-
       if (editingRecord) {
         await updateStockIn(editingRecord.id, formData);
         toast.success('Stock updated successfully');
       } else {
-        // Add receivedBy (current user ID) to the data
-        await createStockIn({ ...formData, receivedBy: storedUser.id });
+        // receivedBy is now set by backend from header
+        await createStockIn(formData);
         toast.success('Stock added successfully');
       }
       fetchData();

@@ -15,7 +15,7 @@ router.get("/", (req, res) => {
         FROM stock_out s
         LEFT JOIN items i ON s.item_id = i.id
         LEFT JOIN departments d ON s.department_id = d.id
-        LEFT JOIN staff req ON s.requested_by = req.id
+        LEFT JOIN users req ON s.requested_by = req.id
         LEFT JOIN users iss ON s.issued_by = iss.id
         ORDER BY s.id DESC
     `;
@@ -52,17 +52,22 @@ router.get("/:id", (req, res) => {
 
 // Create new stock out record
 router.post("/", (req, res) => {
-    const { itemId, quantity, departmentId, requestedBy, issuedBy, note, transactionDate } = req.body;
+    const { itemId, quantity, departmentId, requestedBy, note, transactionDate } = req.body;
+    const issuedBy = req.headers["user-id"];
 
     if (!itemId || !quantity || !departmentId) {
         return res.status(400).json({ message: "Item, quantity, and department are required" });
+    }
+
+    if (!issuedBy) {
+        return res.status(401).json({ message: "Unauthorized - user ID not found" });
     }
 
     console.log("Creating stock_out with:", { itemId, quantity, departmentId, requestedBy, issuedBy, note, transactionDate });
 
     const sql = "INSERT INTO stock_out (item_id, quantity, department_id, requested_by, issued_by, note, transaction_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-    db.query(sql, [itemId, quantity, departmentId, requestedBy || null, issuedBy || null, note || null, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
+    db.query(sql, [itemId, quantity, departmentId, requestedBy || null, issuedBy, note || null, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
         if (err) {
             console.error("StockOut POST Error:", err);
             return res.status(500).json({ message: "Error creating stock out record", error: err.message });

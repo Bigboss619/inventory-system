@@ -82,9 +82,6 @@ const StockOut = () => {
   const handleSaveStock = async (formData) => {
     setLoading(true);
     try {
-      // Get current user from localStorage
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-
       console.log('Saving StockOut:', formData);
 
       // Rename fields for backend
@@ -103,8 +100,8 @@ const StockOut = () => {
         await updateStockOut(editingRecord.id, formData);
         toast.success('Stock out record updated');
       } else {
-        // Add issuedBy (current user ID) to the data
-        await createStockOut({ ...apiData, issuedBy: storedUser.id });
+        // issuedBy is now set by backend from header
+        await createStockOut(apiData);
         toast.success('Item issued successfully');
       }
       fetchData();

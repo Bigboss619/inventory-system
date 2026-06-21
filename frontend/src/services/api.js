@@ -273,9 +273,13 @@ export const getStockInById = async (id) => {
 };
 
 export const createStockIn = async (data) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const response = await fetch(`${API_URL}/stock-in`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'user-id': user.id
+    },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -329,9 +333,13 @@ export const getStockOutById = async (id) => {
 };
 
 export const createStockOut = async (data) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const response = await fetch(`${API_URL}/stock-out`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'user-id': user.id
+    },
     body: JSON.stringify(data),
   });
   if (!response.ok) {

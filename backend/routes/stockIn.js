@@ -47,17 +47,22 @@ router.get("/:id", (req, res) => {
 
 // Create new stock in record
 router.post("/", (req, res) => {
-    const { itemId, quantity, supplier, note, receivedBy, transactionDate } = req.body;
+    const { itemId, quantity, supplier, note, transactionDate } = req.body;
+    const receivedBy = req.headers["user-id"];
 
     if (!itemId || !quantity) {
         return res.status(400).json({ message: "Item and quantity are required" });
+    }
+
+    if (!receivedBy) {
+        return res.status(401).json({ message: "Unauthorized - user ID not found" });
     }
 
     console.log("Creating stock_in with:", { itemId, quantity, supplier, note, receivedBy, transactionDate });
 
     const sql = "INSERT INTO stock_in (item_id, quantity, supplier, note, received_by, transaction_date) VALUES (?, ?, ?, ?, ?, ?)";
 
-    db.query(sql, [itemId, quantity, supplier || null, note || null, receivedBy || null, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
+    db.query(sql, [itemId, quantity, supplier || null, note || null, receivedBy, transactionDate || new Date().toLocaleDateString('en-CA')], (err, results) => {
         if (err) {
             console.error("StockIn POST Error:", err);
             return res.status(500).json({ message: "Error creating stock in record", error: err.message });
