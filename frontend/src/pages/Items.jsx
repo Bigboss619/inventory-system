@@ -8,6 +8,7 @@ import ItemsFilters from '../items/ItemsFilters';
 import ItemsTable from '../items/ItemsTable';
 import ItemModal from '../items/ItemModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import Pagination from '../components/ui/Pagination';
 
 const Items = () => {
   const [items, setItems] = useState([]);
@@ -21,6 +22,8 @@ const Items = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchData();
@@ -54,6 +57,18 @@ const Items = () => {
     const matchesStatus = !statusFilter || item.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, statusFilter]);
 
   const handleAddItem = () => {
     setEditingItem(null);
@@ -165,11 +180,18 @@ const Items = () => {
         categories={categories}
       />
       <ItemsTable
-        items={filteredItems}
+        items={paginatedItems}
         fetching={fetching}
         userRole={userRole}
         onEdit={handleEditItem}
         onDelete={handleDeleteItem}
+      />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={filteredItems.length}
+        itemsPerPage={itemsPerPage}
       />
       <ItemModal
         isOpen={modalOpen}
