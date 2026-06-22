@@ -50,13 +50,18 @@ const Items = () => {
     }
   };
 
-  const filteredItems = items.filter(item => {
-    const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (item.item_code || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !categoryFilter || item.category_id == categoryFilter;
-    const matchesStatus = !statusFilter || item.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  // Sort order: Out of Stock -> Low Stock -> Available
+  const statusOrder = { 'out': 1, 'low': 2, 'available': 3 };
+
+  const filteredItems = items
+    .filter(item => {
+      const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (item.item_code || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !categoryFilter || item.category_id == categoryFilter;
+      const matchesStatus = !statusFilter || item.status === statusFilter;
+      return matchesSearch && matchesCategory && matchesStatus;
+    })
+    .sort((a, b) => (statusOrder[a.status] || 4) - (statusOrder[b.status] || 4));
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
