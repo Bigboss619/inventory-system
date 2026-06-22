@@ -78,26 +78,50 @@ router.put("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
     const { id } = req.params;
 
-    // First check if category has items
-    const checkSql = "SELECT COUNT(*) as count FROM items WHERE category_id = ?";
-    db.query(checkSql, [id], (err, results) => {
+    // Get all items in this category
+    const getItems = "SELECT id FROM items WHERE category_id = ?";
+    db.query(getItems, [id], (err, items) => {
         if (err) {
-            return res.status(500).json({ message: "Error checking category", error: err });
-        }
-        if (results[0].count > 0) {
-            return res.status(400).json({ message: "Cannot delete category with associated items. Please delete or reassign items first." });
+            return res.status(500).json({ message: "Error fetching items", error: err });
         }
 
-        const sql = "DELETE FROM categories WHERE id = ?";
-        db.query(sql, [id], (err, results) => {
-            if (err) {
-                return res.status(500).json({ message: "Error deleting category", error: err });
+        // Delete stock transactions for each item, then delete items
+        const deleteStockIn = "DELETE FROM stock_in WHERE item_id = ?";
+        const deleteStockOut = "DELETE FROM stock_out WHERE item_id = ?";
+        const deleteItems = "DELETE FROM items WHERE category_id = ?";
+        const deleteCategory = "DELETE FROM categories WHERE id = ?";
+
+        const deleteAll = async () => {
+            for (const item of items) {
+                await new Promise((resolve, reject) => {
+                    db.query(deleteStockIn, [item.id], (err) => {
+                        if (err) return reject(err);
+                        db.query(deleteStockOut, [item.id], (err) => {
+                            if (err) return reject(err);
+                            resolve();
+                        });
+                    });
+                });
             }
-            if (results.affectedRows === 0) {
-                return res.status(404).json({ message: "Category not found" });
-            }
-            res.json({ message: "Category deleted successfully" });
-        });
+
+            db.query(deleteItems, [id], (err) => {
+                if (err) {
+                    return res.status(500).json({ message: "Error deleting items", error: err });
+                }
+
+                db.query(deleteCategory, [id], (err, results) => {
+                    if (err) {
+                        return res.status(500).json({ message: "Error deleting category", error: err });
+                    }
+                    if (results.affectedRows === 0) {
+                        return res.status(404).json({ message: "Category not found" });
+                    }
+                    res.json({ message: "Category deleted successfully" });
+                });
+            });
+        };
+
+        deleteAll();
     });
 });
 

@@ -166,24 +166,18 @@ router.put("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
     const { id } = req.params;
 
-    // Check for stock transactions
-    const checkStockIn = "SELECT COUNT(*) as count FROM stock_in WHERE item_id = ?";
-    const checkStockOut = "SELECT COUNT(*) as count FROM stock_out WHERE item_id = ?";
+    // Delete stock transactions first
+    const deleteStockIn = "DELETE FROM stock_in WHERE item_id = ?";
+    const deleteStockOut = "DELETE FROM stock_out WHERE item_id = ?";
 
-    db.query(checkStockIn, [id], (err, results) => {
+    db.query(deleteStockIn, [id], (err) => {
         if (err) {
-            return res.status(500).json({ message: "Error checking item", error: err });
-        }
-        if (results[0].count > 0) {
-            return res.status(400).json({ message: "Cannot delete item with stock-in transactions" });
+            return res.status(500).json({ message: "Error deleting stock-in records", error: err });
         }
 
-        db.query(checkStockOut, [id], (err, results) => {
+        db.query(deleteStockOut, [id], (err) => {
             if (err) {
-                return res.status(500).json({ message: "Error checking item", error: err });
-            }
-            if (results[0].count > 0) {
-                return res.status(400).json({ message: "Cannot delete item with stock-out transactions" });
+                return res.status(500).json({ message: "Error deleting stock-out records", error: err });
             }
 
             const sql = "DELETE FROM items WHERE id = ?";
