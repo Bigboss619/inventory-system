@@ -166,16 +166,37 @@ router.put("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
     const { id } = req.params;
 
-    const sql = "DELETE FROM items WHERE id = ?";
+    // Check for stock transactions
+    const checkStockIn = "SELECT COUNT(*) as count FROM stock_in WHERE item_id = ?";
+    const checkStockOut = "SELECT COUNT(*) as count FROM stock_out WHERE item_id = ?";
 
-    db.query(sql, [id], (err, results) => {
+    db.query(checkStockIn, [id], (err, results) => {
         if (err) {
-            return res.status(500).json({ message: "Error deleting item", error: err });
+            return res.status(500).json({ message: "Error checking item", error: err });
         }
-        if (results.affectedRows === 0) {
-            return res.status(404).json({ message: "Item not found" });
+        if (results[0].count > 0) {
+            return res.status(400).json({ message: "Cannot delete item with stock-in transactions" });
         }
-        res.json({ message: "Item deleted successfully" });
+
+        db.query(checkStockOut, [id], (err, results) => {
+            if (err) {
+                return res.status(500).json({ message: "Error checking item", error: err });
+            }
+            if (results[0].count > 0) {
+                return res.status(400).json({ message: "Cannot delete item with stock-out transactions" });
+            }
+
+            const sql = "DELETE FROM items WHERE id = ?";
+            db.query(sql, [id], (err, results) => {
+                if (err) {
+                    return res.status(500).json({ message: "Error deleting item", error: err });
+                }
+                if (results.affectedRows === 0) {
+                    return res.status(404).json({ message: "Item not found" });
+                }
+                res.json({ message: "Item deleted successfully" });
+            });
+        });
     });
 });
 

@@ -78,16 +78,26 @@ router.put("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
     const { id } = req.params;
 
-    const sql = "DELETE FROM categories WHERE id = ?";
-
-    db.query(sql, [id], (err, results) => {
+    // First check if category has items
+    const checkSql = "SELECT COUNT(*) as count FROM items WHERE category_id = ?";
+    db.query(checkSql, [id], (err, results) => {
         if (err) {
-            return res.status(500).json({ message: "Error deleting category", error: err });
+            return res.status(500).json({ message: "Error checking category", error: err });
         }
-        if (results.affectedRows === 0) {
-            return res.status(404).json({ message: "Category not found" });
+        if (results[0].count > 0) {
+            return res.status(400).json({ message: "Cannot delete category with associated items. Please delete or reassign items first." });
         }
-        res.json({ message: "Category deleted successfully" });
+
+        const sql = "DELETE FROM categories WHERE id = ?";
+        db.query(sql, [id], (err, results) => {
+            if (err) {
+                return res.status(500).json({ message: "Error deleting category", error: err });
+            }
+            if (results.affectedRows === 0) {
+                return res.status(404).json({ message: "Category not found" });
+            }
+            res.json({ message: "Category deleted successfully" });
+        });
     });
 });
 
