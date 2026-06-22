@@ -3,6 +3,7 @@ import { FiUser, FiMail, FiPhone, FiLock, FiSettings, FiBell, FiDatabase, FiFile
 import toast from 'react-hot-toast';
 import { getUsers, createUser, updateUser, deleteUser, updateUserStatus, getDepartments, createDepartment, updateDepartment, deleteDepartment } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 // Tab components
 const TABS = [
@@ -28,6 +29,7 @@ const MOCK_LOGS = [
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('departments');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   return (
     <div className="space-y-6">
@@ -136,15 +138,21 @@ const DepartmentSettings = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this department?')) {
-      try {
-        await deleteDepartment(id);
-        toast.success('Department deleted successfully');
-        fetchDepartments();
-      } catch (error) {
-        toast.error(error.message || 'Failed to delete department');
+    setConfirmModal({
+      open: true,
+      title: 'Delete Department',
+      message: 'Are you sure you want to delete this department?',
+      onConfirm: async () => {
+        try {
+          await deleteDepartment(id);
+          toast.success('Department deleted successfully');
+          fetchDepartments();
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          toast.error(error.message || 'Failed to delete department');
+        }
       }
-    }
+    });
   };
 
   return (
@@ -343,16 +351,22 @@ const UserRolesSettings = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await deleteUser(id);
-        toast.success('User deleted successfully');
-        fetchUsers();
-      } catch (error) {
-        toast.error(error.message || 'Failed to delete user');
+  const handleDeleteUser = async (id) => {
+    setConfirmModal({
+      open: true,
+      title: 'Delete User',
+      message: 'Are you sure you want to delete this user?',
+      onConfirm: async () => {
+        try {
+          await deleteUser(id);
+          toast.success('User deleted successfully');
+          fetchUsers();
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          toast.error(error.message || 'Failed to delete user');
+        }
       }
-    }
+    });
   };
 
   const handleStatusToggle = async (user) => {
@@ -432,7 +446,7 @@ const UserRolesSettings = () => {
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <button onClick={() => handleOpenModal(user)} className="p-1 text-gray-500 hover:text-blue-600"><FiEdit2 className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(user.id)} className="p-1 text-gray-500 hover:text-red-600"><FiTrash2 className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteUser(user.id)} className="p-1 text-gray-500 hover:text-red-600"><FiTrash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -844,6 +858,13 @@ const AuditLogsSettings = () => {
           </tbody>
         </table>
       </div>
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };

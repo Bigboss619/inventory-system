@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { getAllMaintenance, getVehicles, createMaintenance, updateMaintenance, deleteMaintenance } from '../services/api';
 import { StatsCard, MaintenanceTable, MaintenanceModal } from '../components/maintenance';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const STATUS_OPTIONS = ['All', 'Pending', 'Scheduled', 'In Progress', 'Completed'];
 const TYPE_OPTIONS = ['All', 'Oil Change', 'Tire Rotation', 'Brake Repair', 'General Service', 'Engine Repair', 'Air Filter', 'Wheel Alignment'];
@@ -17,6 +18,7 @@ const MaintenanceTracker = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,16 +70,22 @@ const MaintenanceTracker = () => {
   };
 
   const handleDeleteRecord = async (id) => {
-    if (window.confirm('Are you sure you want to delete this record?')) {
-      try {
-        await deleteMaintenance(id);
-        setMaintenance(maintenance.filter(m => m.id !== id));
-        toast.success('Record deleted successfully');
-      } catch (error) {
-        console.error('Error deleting record:', error);
-        toast.error('Failed to delete record');
+    setConfirmModal({
+      open: true,
+      title: 'Delete Record',
+      message: 'Are you sure you want to delete this record?',
+      onConfirm: async () => {
+        try {
+          await deleteMaintenance(id);
+          setMaintenance(maintenance.filter(m => m.id !== id));
+          toast.success('Record deleted successfully');
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          console.error('Error deleting record:', error);
+          toast.error('Failed to delete record');
+        }
       }
-    }
+    });
   };
 
   const handleSaveRecord = async (formData) => {
@@ -246,6 +254,13 @@ const MaintenanceTracker = () => {
           loading={loading}
         />
       )}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };

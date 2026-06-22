@@ -7,6 +7,7 @@ import StockInStats from '../stockIn/StockInStats';
 import StockInFilters from '../stockIn/StockInFilters';
 import StockInTable from '../stockIn/StockInTable';
 import StockInModal from '../stockIn/StockInModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const StockIn = () => {
   const [stockIn, setStockIn] = useState([]);
@@ -17,6 +18,7 @@ const StockIn = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [userRole, setUserRole] = useState('');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     fetchData();
@@ -58,15 +60,21 @@ const StockIn = () => {
   };
 
   const handleDeleteStock = async (id) => {
-    if (window.confirm('Are you sure you want to delete this stock in record?')) {
-      try {
-        await deleteStockIn(id);
-        toast.success('Stock in record deleted');
-        fetchData();
-      } catch (error) {
-        toast.error('Failed to delete stock');
+    setConfirmModal({
+      open: true,
+      title: 'Delete Stock In',
+      message: 'Are you sure you want to delete this stock in record?',
+      onConfirm: async () => {
+        try {
+          await deleteStockIn(id);
+          toast.success('Stock in record deleted');
+          fetchData();
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          toast.error('Failed to delete stock');
+        }
       }
-    }
+    });
   };
 
   const handleSaveStock = async (formData) => {
@@ -143,6 +151,13 @@ const StockIn = () => {
         loading={loading}
         record={editingRecord}
         readOnly={userRole !== 'Super Admin' && userRole !== 'Inventory Officer'}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
       />
     </div>
   );

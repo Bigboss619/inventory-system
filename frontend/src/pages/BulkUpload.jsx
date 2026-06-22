@@ -3,6 +3,7 @@ import { FiUpload, FiFile, FiCheck, FiX, FiDownload, FiTrash2 } from 'react-icon
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { bulkUploadVehicles } from '../services/api';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 // Excel template columns for vehicle documents bulk upload
 const VEHICLE_TEMPLATE_HEADERS = [
@@ -31,6 +32,7 @@ const BulkUpload = () => {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -159,12 +161,18 @@ const BulkUpload = () => {
   };
 
   const handleDeleteUpload = (id) => {
-    if (window.confirm('Are you sure you want to delete this upload record?')) {
-      const updated = uploads.filter(u => u.id !== id);
-      setUploads(updated);
-      localStorage.setItem('uploadHistory', JSON.stringify(updated));
-      toast.success('Upload record deleted');
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Delete Upload',
+      message: 'Are you sure you want to delete this upload record?',
+      onConfirm: () => {
+        const updated = uploads.filter(u => u.id !== id);
+        setUploads(updated);
+        localStorage.setItem('uploadHistory', JSON.stringify(updated));
+        toast.success('Upload record deleted');
+        setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   const downloadTemplate = () => {
@@ -314,6 +322,13 @@ const BulkUpload = () => {
           )}
         </div>
       </div>
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };

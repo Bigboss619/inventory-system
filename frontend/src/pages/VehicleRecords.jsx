@@ -4,6 +4,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiTruck, FiDownload, FiX, FiFile, 
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle, getVehicleDocuments, createDocument, updateDocument, deleteDocument, getMaintenanceRecords, createMaintenance, updateMaintenance, deleteMaintenance } from '../services/api';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const STATUS_OPTIONS = ['All', 'Active', 'Maintenance', 'Inactive'];
 
@@ -494,6 +495,7 @@ const VehicleRecords = () => {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     fetchVehicles();
@@ -591,15 +593,21 @@ const VehicleRecords = () => {
   };
 
   const handleDeleteVehicle = async (assetId) => {
-    if (window.confirm('Are you sure you want to delete this vehicle?')) {
-      try {
-        await deleteVehicle(assetId);
-        setVehicles(vehicles.filter(v => v.asset_id !== assetId));
-        toast.success('Vehicle deleted successfully');
-      } catch (error) {
-        toast.error('Failed to delete vehicle');
+    setConfirmModal({
+      open: true,
+      title: 'Delete Vehicle',
+      message: 'Are you sure you want to delete this vehicle?',
+      onConfirm: async () => {
+        try {
+          await deleteVehicle(assetId);
+          setVehicles(vehicles.filter(v => v.asset_id !== assetId));
+          toast.success('Vehicle deleted successfully');
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          toast.error('Failed to delete vehicle');
+        }
       }
-    }
+    });
   };
 
   const handleSaveVehicle = async (formData) => {
@@ -682,6 +690,13 @@ const VehicleRecords = () => {
           fetchDocsAndMaint={fetchDocsAndMaint}
         />
       )}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };

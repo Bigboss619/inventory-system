@@ -7,6 +7,7 @@ import ItemsStats from '../items/ItemsStats';
 import ItemsFilters from '../items/ItemsFilters';
 import ItemsTable from '../items/ItemsTable';
 import ItemModal from '../items/ItemModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const Items = () => {
   const [items, setItems] = useState([]);
@@ -19,6 +20,7 @@ const Items = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     fetchData();
@@ -68,18 +70,30 @@ const Items = () => {
       const records = await checkItemRecords(id);
 
       if (records.hasRecords) {
-        const confirmDelete = window.confirm(
-          `Warning: Deleting this item will also delete ${records.totalRecords} stock record(s) (${records.stockInCount} stock-in, ${records.stockOutCount} stock-out).\n\nThis action cannot be undone. Are you sure you want to delete?`
-        );
-        if (!confirmDelete) return;
+        setConfirmModal({
+          open: true,
+          title: 'Delete Item',
+          message: `Warning: Deleting this item will also delete ${records.totalRecords} stock record(s) (${records.stockInCount} stock-in, ${records.stockOutCount} stock-out).\n\nThis action cannot be undone. Are you sure you want to delete?`,
+          onConfirm: async () => {
+            await deleteItem(id);
+            toast.success('Item deleted successfully');
+            fetchData();
+            setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+          }
+        });
       } else {
-        const confirmDelete = window.confirm('Are you sure you want to delete this item?');
-        if (!confirmDelete) return;
+        setConfirmModal({
+          open: true,
+          title: 'Delete Item',
+          message: 'Are you sure you want to delete this item?',
+          onConfirm: async () => {
+            await deleteItem(id);
+            toast.success('Item deleted successfully');
+            fetchData();
+            setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+          }
+        });
       }
-
-      await deleteItem(id);
-      toast.success('Item deleted successfully');
-      fetchData();
     } catch (error) {
       toast.error('Failed to delete item');
     }
@@ -168,6 +182,13 @@ const Items = () => {
         categories={categories}
         loading={loading}
         readOnly={userRole !== 'Super Admin' && userRole !== 'Inventory Officer'}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
       />
     </div>
   );

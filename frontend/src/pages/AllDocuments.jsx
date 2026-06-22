@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { FiLoader } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
 import { getAllDocuments, getVehicles, updateDocument, deleteDocument, createDocument, getDocumentRenewals } from '../services/api';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const STATUS_OPTIONS = ['All', 'Active', 'Expiring Soon', 'Expired'];
 const TYPE_OPTIONS = ['All', 'Insurance', 'Registration', 'Tax', 'Permit', 'Other'];
@@ -19,6 +20,7 @@ const AllDocuments = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   // Fetch all documents and vehicles on mount
   useEffect(() => {
@@ -95,16 +97,22 @@ const AllDocuments = () => {
   };
 
   const handleDeleteDocument = async (id) => {
-    if (window.confirm('Are you sure you want to delete this document?')) {
-      try {
-        await deleteDocument(id);
-        setDocuments(documents.filter(d => d.id !== id));
-        toast.success('Document deleted successfully');
-      } catch (error) {
-        console.error('Error deleting document:', error);
-        toast.error('Failed to delete document');
+    setConfirmModal({
+      open: true,
+      title: 'Delete Document',
+      message: 'Are you sure you want to delete this document?',
+      onConfirm: async () => {
+        try {
+          await deleteDocument(id);
+          setDocuments(documents.filter(d => d.id !== id));
+          toast.success('Document deleted successfully');
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          console.error('Error deleting document:', error);
+          toast.error('Failed to delete document');
+        }
       }
-    }
+    });
   };
 
   const handleSaveDocument = async (formData) => {
@@ -592,6 +600,14 @@ const DocumentModal = ({ isOpen, onClose, onSave, document, vehicles, loading })
           </div>
         </form>
       </div>
+    </div>
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };

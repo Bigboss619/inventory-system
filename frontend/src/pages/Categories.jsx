@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { getCategories, createCategory, updateCategory, deleteCategory, checkCategoryRecords } from '../services/api';
 import CategoryModal from '../components/forms/CategoryModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -11,6 +12,7 @@ const Categories = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   // Fetch categories on mount
   useEffect(() => {
@@ -49,18 +51,30 @@ const Categories = () => {
       const records = await checkCategoryRecords(id);
 
       if (records.hasRecords) {
-        const confirmDelete = window.confirm(
-          `Warning: Deleting this category will also delete ${records.itemsCount} item(s) and ${records.totalRecords} stock record(s).\n\nThis action cannot be undone. Are you sure you want to delete?`
-        );
-        if (!confirmDelete) return;
+        setConfirmModal({
+          open: true,
+          title: 'Delete Category',
+          message: `Warning: Deleting this category will also delete ${records.itemsCount} item(s) and ${records.totalRecords} stock record(s).\n\nThis action cannot be undone. Are you sure you want to delete?`,
+          onConfirm: async () => {
+            await deleteCategory(id);
+            toast.success('Category deleted successfully');
+            fetchCategories();
+            setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+          }
+        });
       } else {
-        const confirmDelete = window.confirm('Are you sure you want to delete this category?');
-        if (!confirmDelete) return;
+        setConfirmModal({
+          open: true,
+          title: 'Delete Category',
+          message: 'Are you sure you want to delete this category?',
+          onConfirm: async () => {
+            await deleteCategory(id);
+            toast.success('Category deleted successfully');
+            fetchCategories();
+            setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+          }
+        });
       }
-
-      await deleteCategory(id);
-      toast.success('Category deleted successfully');
-      fetchCategories();
     } catch (error) {
       toast.error('Failed to delete category');
     }
@@ -237,6 +251,13 @@ const Categories = () => {
         onSave={handleSaveCategory}
         category={editingCategory}
         loading={loading}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
       />
     </div>
   );

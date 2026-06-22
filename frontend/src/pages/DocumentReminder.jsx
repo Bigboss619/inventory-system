@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { getAllDocuments } from '../services/api';
 import { StatsCard, MaintenanceTable } from '../components/maintenance';
 import { ReminderTable, ReminderModal } from '../components/documents';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const STATUS_OPTIONS = ['All', 'Expiring Soon', 'Expired'];
 
@@ -15,6 +16,7 @@ const DocumentReminder = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -94,10 +96,16 @@ const DocumentReminder = () => {
   };
 
   const handleDeleteReminder = (id) => {
-    if (window.confirm('Are you sure you want to delete this reminder?')) {
-      setDocuments(documents.filter(d => d.id !== id));
-      toast.success('Reminder deleted successfully');
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Delete Reminder',
+      message: 'Are you sure you want to delete this reminder?',
+      onConfirm: () => {
+        setDocuments(documents.filter(d => d.id !== id));
+        toast.success('Reminder deleted successfully');
+        setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   const handleSaveReminder = async (formData) => {
@@ -247,6 +255,13 @@ const DocumentReminder = () => {
           loading={loading}
         />
       )}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };

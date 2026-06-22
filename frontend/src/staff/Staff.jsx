@@ -8,6 +8,7 @@ import StaffFilters from './StaffFilters';
 import StaffTable from './StaffTable';
 import StaffModal from './StaffModal';
 import ViewStaffModal from './ViewStaffModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const Staff = () => {
   const [staff, setStaff] = useState([]);
@@ -20,6 +21,7 @@ const Staff = () => {
   const [fetching, setFetching] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   // Fetch staff and departments on mount
   useEffect(() => {
@@ -83,15 +85,21 @@ const Staff = () => {
   };
 
   const handleDeleteStaff = async (id) => {
-    if (window.confirm('Are you sure you want to delete this staff member?')) {
-      try {
-        await deleteStaff(id);
-        toast.success('Staff member deleted successfully');
-        fetchStaff();
-      } catch (error) {
-        toast.error('Failed to delete staff');
+    setConfirmModal({
+      open: true,
+      title: 'Delete Staff',
+      message: 'Are you sure you want to delete this staff member?',
+      onConfirm: async () => {
+        try {
+          await deleteStaff(id);
+          toast.success('Staff member deleted successfully');
+          fetchStaff();
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          toast.error('Failed to delete staff');
+        }
       }
-    }
+    });
   };
 
   const handleSaveStaff = async (formData) => {
@@ -190,6 +198,13 @@ const Staff = () => {
           setViewingStaff(null);
         }}
         staff={viewingStaff}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
       />
     </div>
   );

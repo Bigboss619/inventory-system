@@ -7,6 +7,7 @@ import StockOutStats from '../stockOut/StockOutStats';
 import StockOutFilters from '../stockOut/StockOutFilters';
 import StockOutTable from '../stockOut/StockOutTable';
 import StockOutModal from '../stockOut/StockOutModal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const StockOut = () => {
   const [stockOut, setStockOut] = useState([]);
@@ -20,6 +21,7 @@ const StockOut = () => {
   const [fetching, setFetching] = useState(true);
   const [userRole, setUserRole] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     fetchData();
@@ -68,15 +70,21 @@ const StockOut = () => {
   };
 
   const handleDeleteStock = async (id) => {
-    if (window.confirm('Are you sure you want to delete this stock out record?')) {
-      try {
-        await deleteStockOut(id);
-        toast.success('Stock out record deleted');
-        fetchData();
-      } catch (error) {
-        toast.error('Failed to delete stock');
+    setConfirmModal({
+      open: true,
+      title: 'Delete Stock Out',
+      message: 'Are you sure you want to delete this stock out record?',
+      onConfirm: async () => {
+        try {
+          await deleteStockOut(id);
+          toast.success('Stock out record deleted');
+          fetchData();
+          setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+        } catch (error) {
+          toast.error('Failed to delete stock');
+        }
       }
-    }
+    });
   };
 
   const handleSaveStock = async (formData) => {
@@ -179,6 +187,13 @@ const StockOut = () => {
         loading={loading}
         record={editingRecord}
         readOnly={userRole !== 'Super Admin' && userRole !== 'Inventory Officer'}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
       />
     </div>
   );

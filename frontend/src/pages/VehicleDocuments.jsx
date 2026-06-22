@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiSearch, FiDownload, FiEye, FiTrash2, FiFile, FiPlus, FiX, FiLink } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 // Mock data - vehicles
 const MOCK_VEHICLES = [
@@ -46,6 +47,7 @@ const VehicleDocuments = () => {
   const [typeFilter, setTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   // Stats
   const totalDocs = documents.length;
@@ -70,10 +72,16 @@ const VehicleDocuments = () => {
   }, [documents, searchQuery, typeFilter, statusFilter]);
 
   const handleDeleteDocument = (id) => {
-    if (window.confirm('Are you sure you want to delete this document?')) {
-      setDocuments(documents.filter(d => d.id !== id));
-      toast.success('Document deleted successfully');
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Delete Document',
+      message: 'Are you sure you want to delete this document?',
+      onConfirm: () => {
+        setDocuments(documents.filter(d => d.id !== id));
+        toast.success('Document deleted successfully');
+        setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} });
+      }
+    });
   };
 
   const handleAddDocument = (formData) => {
@@ -449,6 +457,13 @@ const AddDocumentModal = ({ isOpen, onClose, onSave }) => {
           </div>
         </form>
       </div>
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };
