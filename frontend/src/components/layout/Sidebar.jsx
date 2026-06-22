@@ -57,8 +57,8 @@ const MENU_ITEMS = [
       { label: 'Document Reports', path: '/reports/documents', icon: FiFileText },
     ]
   },
-  { title: 'User Management', icon: FiUsers, path: '/users' },
-  { title: 'Settings', icon: FiSettings, path: '/settings' },
+  // { title: 'User Management', icon: FiUsers, path: '/users' },
+  // { title: 'Settings', icon: FiSettings, path: '/settings' },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {

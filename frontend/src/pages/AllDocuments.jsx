@@ -600,7 +600,6 @@ const DocumentModal = ({ isOpen, onClose, onSave, document, vehicles, loading })
           </div>
         </form>
       </div>
-    </div>
       <ConfirmModal
         isOpen={confirmModal.open}
         onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
