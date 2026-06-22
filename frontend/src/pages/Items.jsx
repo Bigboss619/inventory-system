@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { getItems, createItem, updateItem, deleteItem, getCategories } from '../services/api';
+import { getItems, createItem, updateItem, deleteItem, getCategories, checkItemRecords } from '../services/api';
 import ItemsHeader from '../items/ItemsHeader';
 import ItemsStats from '../items/ItemsStats';
 import ItemsFilters from '../items/ItemsFilters';
@@ -64,14 +64,24 @@ const Items = () => {
   };
 
   const handleDeleteItem = async (id) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      try {
-        await deleteItem(id);
-        toast.success('Item deleted successfully');
-        fetchData();
-      } catch (error) {
-        toast.error('Failed to delete item');
+    try {
+      const records = await checkItemRecords(id);
+
+      if (records.hasRecords) {
+        const confirmDelete = window.confirm(
+          `Warning: Deleting this item will also delete ${records.totalRecords} stock record(s) (${records.stockInCount} stock-in, ${records.stockOutCount} stock-out).\n\nThis action cannot be undone. Are you sure you want to delete?`
+        );
+        if (!confirmDelete) return;
+      } else {
+        const confirmDelete = window.confirm('Are you sure you want to delete this item?');
+        if (!confirmDelete) return;
       }
+
+      await deleteItem(id);
+      toast.success('Item deleted successfully');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete item');
     }
   };
 

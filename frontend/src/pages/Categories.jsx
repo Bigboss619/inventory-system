@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiDownload, FiLayers, FiBox, FiLoader } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { getCategories, createCategory, updateCategory, deleteCategory } from '../services/api';
+import { getCategories, createCategory, updateCategory, deleteCategory, checkCategoryRecords } from '../services/api';
 import CategoryModal from '../components/forms/CategoryModal';
 
 const Categories = () => {
@@ -45,14 +45,24 @@ const Categories = () => {
   };
 
   const handleDeleteCategory = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await deleteCategory(id);
-        toast.success('Category deleted successfully');
-        fetchCategories();
-      } catch (error) {
-        toast.error('Failed to delete category');
+    try {
+      const records = await checkCategoryRecords(id);
+
+      if (records.hasRecords) {
+        const confirmDelete = window.confirm(
+          `Warning: Deleting this category will also delete ${records.itemsCount} item(s) and ${records.totalRecords} stock record(s).\n\nThis action cannot be undone. Are you sure you want to delete?`
+        );
+        if (!confirmDelete) return;
+      } else {
+        const confirmDelete = window.confirm('Are you sure you want to delete this category?');
+        if (!confirmDelete) return;
       }
+
+      await deleteCategory(id);
+      toast.success('Category deleted successfully');
+      fetchCategories();
+    } catch (error) {
+      toast.error('Failed to delete category');
     }
   };
 

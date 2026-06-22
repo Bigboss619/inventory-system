@@ -163,6 +163,35 @@ router.put("/:id", (req, res) => {
 });
 
 // Delete item
+// Check item for associated records
+router.get("/check/:id", (req, res) => {
+    const { id } = req.params;
+
+    const checkStockIn = "SELECT COUNT(*) as count FROM stock_in WHERE item_id = ?";
+    const checkStockOut = "SELECT COUNT(*) as count FROM stock_out WHERE item_id = ?";
+
+    db.query(checkStockIn, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err });
+        }
+        const stockInCount = results[0].count;
+
+        db.query(checkStockOut, [id], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err });
+            }
+            const stockOutCount = results[0].count;
+
+            res.json({
+                hasRecords: stockInCount > 0 || stockOutCount > 0,
+                stockInCount,
+                stockOutCount,
+                totalRecords: stockInCount + stockOutCount
+            });
+        });
+    });
+});
+
 router.delete("/:id", (req, res) => {
     const { id } = req.params;
 

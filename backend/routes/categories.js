@@ -74,6 +74,49 @@ router.put("/:id", (req, res) => {
     });
 });
 
+// Check category for associated records
+router.get("/check/:id", (req, res) => {
+    const { id } = req.params;
+
+    // Get items in this category
+    const getItems = "SELECT id FROM items WHERE category_id = ?";
+    db.query(getItems, [id], (err, items) => {
+        if (err) {
+            return res.status(500).json({ error: err });
+        }
+
+        if (items.length === 0) {
+            return res.json({ hasRecords: false, itemsCount: 0, totalRecords: 0 });
+        }
+
+        let totalRecords = 0;
+        let checked = 0;
+
+        items.forEach(item => {
+            const checkStockIn = "SELECT COUNT(*) as count FROM stock_in WHERE item_id = ?";
+            const checkStockOut = "SELECT COUNT(*) as count FROM stock_out WHERE item_id = ?";
+
+            db.query(checkStockIn, [item.id], (err, results) => {
+                if (!err) totalRecords += results[0].count;
+                checked++;
+
+                db.query(checkStockOut, [item.id], (err, results) => {
+                    if (!err) totalRecords += results[0].count;
+                    checked++;
+
+                    if (checked === items.length * 2) {
+                        res.json({
+                            hasRecords: totalRecords > 0,
+                            itemsCount: items.length,
+                            totalRecords
+                        });
+                    }
+                });
+            });
+        });
+    });
+});
+
 // Delete category
 router.delete("/:id", (req, res) => {
     const { id } = req.params;

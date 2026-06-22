@@ -205,6 +205,11 @@ export const deleteCategory = async (id) => {
   return response.json();
 };
 
+export const checkCategoryRecords = async (id) => {
+  const response = await fetch(`${API_URL}/categories/check/${id}`);
+  return response.json();
+};
+
 // Items API
 export const getItems = async () => {
   const response = await fetch(`${API_URL}/items`);
@@ -254,6 +259,11 @@ export const deleteItem = async (id) => {
     const error = await response.json();
     throw new Error(error.message || 'Failed to delete item');
   }
+  return response.json();
+};
+
+export const checkItemRecords = async (id) => {
+  const response = await fetch(`${API_URL}/items/check/${id}`);
   return response.json();
 };
 
