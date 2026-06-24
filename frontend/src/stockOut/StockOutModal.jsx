@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { FiX, FiLoader } from 'react-icons/fi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FiX, FiLoader, FiSearch } from 'react-icons/fi';
 
-const StockOutModal = ({ isOpen, onClose, onSave, items, staff, departments, loading, record, readOnly = false }) => {
+const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, departments, loading, record, readOnly = false, categories = [] }) => {
   const [formData, setFormData] = useState({
     staffId: '',
     departmentId: '',
@@ -12,6 +12,28 @@ const StockOutModal = ({ isOpen, onClose, onSave, items, staff, departments, loa
   });
 
   const [error, setError] = useState('');
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+
+  // Filter items by search query and category
+  const filteredItems = useMemo(() => {
+    let result = allItems || [];
+
+    if (categoryFilter) {
+      result = result.filter(item => item.category_name === categoryFilter);
+    }
+
+    if (itemSearchQuery.trim()) {
+      const query = itemSearchQuery.toLowerCase();
+      result = result.filter(item =>
+        item.name?.toLowerCase().includes(query) ||
+        item.item_code?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [allItems, itemSearchQuery, categoryFilter]);
 
   useEffect(() => {
     if (isOpen) {
@@ -24,6 +46,11 @@ const StockOutModal = ({ isOpen, onClose, onSave, items, staff, departments, loa
           note: record.note || '',
           transactionDate: record.transaction_date || new Date().toISOString().split('T')[0]
         });
+        // Set display text for selected item
+        const item = allItems?.find(i => i.id === record.item_id);
+        if (item) {
+          setItemSearchQuery(`${item.name} (${item.item_code}) - Available: ${item.quantity}`);
+        }
       } else {
         setFormData({
           staffId: '',
@@ -33,10 +60,13 @@ const StockOutModal = ({ isOpen, onClose, onSave, items, staff, departments, loa
           note: '',
           transactionDate: new Date().toISOString().split('T')[0]
         });
+        setItemSearchQuery('');
+        setCategoryFilter('');
       }
       setError('');
+      setItemDropdownOpen(false);
     }
-  }, [isOpen, record]);
+  }, [isOpen, record, allItems]);
 
   const handleStaffChange = (e) => {
     const selectedStaff = staff.find(s => s.id === parseInt(e.target.value));
@@ -48,7 +78,7 @@ const StockOutModal = ({ isOpen, onClose, onSave, items, staff, departments, loa
   };
 
   const getAvailableQuantity = () => {
-    const selectedItem = items.find(i => i.id === parseInt(formData.itemId));
+    const selectedItem = allItems.find(i => i.id === parseInt(formData.itemId));
     return selectedItem?.quantity || 0;
   };
 
@@ -138,19 +168,85 @@ const StockOutModal = ({ isOpen, onClose, onSave, items, staff, departments, loa
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category Filter</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setItemSearchQuery('');
+              }}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={readOnly || !!record}
+            >
+              <option value="">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Item *</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={itemSearchQuery}
+                onChange={(e) => {
+                  setItemSearchQuery(e.target.value);
+                  setFormData(prev => ({ ...prev, itemId: '', quantity: '' }));
+                  setItemDropdownOpen(true);
+                }}
+                onFocus={() => setItemDropdownOpen(true)}
+                placeholder="Search items by name or code..."
+                className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                disabled={readOnly || !!record}
+              />
+              <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            </div>
+
+            {/* Dropdown */}
+            {itemDropdownOpen && filteredItems.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {filteredItems.slice(0, 20).map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        itemId: item.id.toString(),
+                        quantity: ''
+                      }));
+                      setItemSearchQuery(`${item.name} (${item.item_code}) - Available: ${item.quantity}`);
+                      setItemDropdownOpen(false);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-blue-50 flex justify-between items-center"
+                  >
+                    <span>{item.name} ({item.item_code})</span>
+                    <span className="text-xs text-gray-400">Qty: {item.quantity}</span>
+                  </button>
+                ))}
+                {filteredItems.length > 20 && (
+                  <div className="px-4 py-2 text-sm text-gray-500 bg-gray-50">
+                    Showing 20 of {filteredItems.length} items
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hidden select for form submission */}
             <select
               name="itemId"
               value={formData.itemId}
               onChange={(e) => setFormData(prev => ({ ...prev, itemId: e.target.value, quantity: '' }))}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="hidden"
               required
-              disabled={readOnly || !!record}
             >
               <option value="">Select Item</option>
-              {items.map(item => (
+              {allItems.map(item => (
                 <option key={item.id} value={item.id}>
-                  {item.name} ({item.item_code}) - Available: {item.quantity}
+                  {item.name} ({item.item_code})
                 </option>
               ))}
             </select>

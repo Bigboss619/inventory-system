@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { getStockIn, createStockIn, updateStockIn, deleteStockIn, getItems } from '../services/api';
+import { getStockIn, createStockIn, updateStockIn, deleteStockIn, getItems, getCategories } from '../services/api';
 import StockInHeader from '../stockIn/StockInHeader';
 import StockInStats from '../stockIn/StockInStats';
 import StockInFilters from '../stockIn/StockInFilters';
@@ -12,6 +12,7 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 const StockIn = () => {
   const [stockIn, setStockIn] = useState([]);
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -33,16 +34,19 @@ const StockIn = () => {
     const isSuperAdmin = storedUser.role === 'Super Admin';
 
     try {
-      const [stockInData, itemsData] = await Promise.all([
+      const [stockInData, itemsData, categoriesData] = await Promise.all([
         getStockIn(),
-        getItems(isSuperAdmin ? {} : { officer_type: officerType })
+        getItems(isSuperAdmin ? {} : { officer_type: officerType }),
+        getCategories()
       ]);
       setStockIn(Array.isArray(stockInData) ? stockInData : []);
       setItems(Array.isArray(itemsData) ? itemsData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error) {
       toast.error('Failed to fetch data');
       setStockIn([]);
       setItems([]);
+      setCategories([]);
     } finally {
       setFetching(false);
     }
@@ -152,6 +156,7 @@ const StockIn = () => {
         }}
         onSave={handleSaveStock}
         items={items}
+        categories={categories}
         loading={loading}
         record={editingRecord}
         readOnly={userRole !== 'Super Admin' && userRole !== 'Inventory Officer'}

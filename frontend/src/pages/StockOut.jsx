@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import { getStockOut, createStockOut, updateStockOut, deleteStockOut, getItems, getStaff, getDepartments, getUsers } from '../services/api';
+import { getStockOut, createStockOut, updateStockOut, deleteStockOut, getItems, getStaff, getDepartments, getUsers, getCategories } from '../services/api';
 import StockOutHeader from '../stockOut/StockOutHeader';
 import StockOutStats from '../stockOut/StockOutStats';
 import StockOutFilters from '../stockOut/StockOutFilters';
@@ -14,6 +14,7 @@ const StockOut = () => {
   const [items, setItems] = useState([]);
   const [staff, setStaff] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -36,21 +37,24 @@ const StockOut = () => {
     const isSuperAdmin = storedUser.role === 'Super Admin';
 
     try {
-      const [stockOutData, itemsData, staffData, departmentsData] = await Promise.all([
+      const [stockOutData, itemsData, staffData, departmentsData, categoriesData] = await Promise.all([
         getStockOut(),
         getItems(isSuperAdmin ? {} : { officer_type: officerType }),
         getStaff(),
-        getDepartments()
+        getDepartments(),
+        getCategories()
       ]);
       setStockOut(Array.isArray(stockOutData) ? stockOutData : []);
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setStaff(Array.isArray(staffData) ? staffData : []);
       setDepartments(Array.isArray(departmentsData) ? departmentsData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error) {
       toast.error('Failed to fetch data');
       setStockOut([]);
       setItems([]);
       setStaff([]);
+      setCategories([]);
       setDepartments([]);
     } finally {
       setFetching(false);
@@ -186,6 +190,7 @@ const StockOut = () => {
         }}
         onSave={handleSaveStock}
         items={items}
+        categories={categories}
         staff={staff}
         departments={departments}
         loading={loading}
