@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS items (
     quantity INT DEFAULT 0,
     min_stock_level INT DEFAULT 5,
     status ENUM('Active', 'Inactive') DEFAULT 'Active',
+    officer_type ENUM('trade', 'retail', 'both') DEFAULT 'both',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id)

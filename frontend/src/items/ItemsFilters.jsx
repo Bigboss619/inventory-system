@@ -8,6 +8,8 @@ const ItemsFilters = ({
   onCategoryChange,
   statusFilter,
   onStatusChange,
+  officerTypeFilter,
+  onOfficerTypeChange,
   categories
 }) => {
   return (
@@ -42,6 +44,15 @@ const ItemsFilters = ({
           <option value="available">Available</option>
           <option value="low">Low Stock</option>
           <option value="out">Out of Stock</option>
+        </select>
+        <select
+          value={officerTypeFilter}
+          onChange={(e) => onOfficerTypeChange(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">All Officers</option>
+          <option value="trade">Trade Officer</option>
+          <option value="retail">Retail Officer</option>
         </select>
       </div>
     </div>

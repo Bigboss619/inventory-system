@@ -7,6 +7,12 @@ const STATUS_COLORS = {
   out: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
 };
 
+const OFFICER_TYPE_COLORS = {
+  trade: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  retail: { bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  both: { bg: 'bg-gray-100', text: 'text-gray-700' },
+};
+
 const isSuperAdmin = (role) => role === 'Super Admin';
 
 const ItemsTable = ({ items, fetching, userRole, onEdit, onDelete }) => {
@@ -25,19 +31,20 @@ const ItemsTable = ({ items, fetching, userRole, onEdit, onDelete }) => {
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Quantity</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Min Stock</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Officer Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {fetching ? (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                   <FiLoader className="w-6 h-6 animate-spin mx-auto text-blue-600" />
                 </td>
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                   No items found. Add your first item to get started.
                 </td>
               </tr>
@@ -53,6 +60,11 @@ const ItemsTable = ({ items, fetching, userRole, onEdit, onDelete }) => {
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[item.status]?.bg || 'bg-gray-100'} ${STATUS_COLORS[item.status]?.text || 'text-gray-700'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[item.status]?.dot || 'bg-gray-500'}`} />
                       {item.status === 'available' ? 'Available' : item.status === 'low' ? 'Low Stock' : 'Out of Stock'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${OFFICER_TYPE_COLORS[item.officer_type]?.bg || 'bg-gray-100'} ${OFFICER_TYPE_COLORS[item.officer_type]?.text || 'text-gray-700'}`}>
+                      {item.officer_type === 'trade' ? 'Trade' : item.officer_type === 'retail' ? 'Retail' : item.officer_type === 'both' ? 'Both' : '-'}
                     </span>
                   </td>
                   <td className="px-6 py-4">

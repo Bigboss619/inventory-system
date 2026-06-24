@@ -17,6 +17,7 @@ const Items = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [officerTypeFilter, setOfficerTypeFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -30,13 +31,13 @@ const Items = () => {
     // Get user role from localStorage
     const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
     setUserRole(storedUser.role || '');
-  }, []);
+  }, [officerTypeFilter]);
 
   const fetchData = async () => {
     setFetching(true);
     try {
       const [itemsData, categoriesData] = await Promise.all([
-        getItems(),
+        getItems(officerTypeFilter !== 'all' ? { officer_type: officerTypeFilter } : {}),
         getCategories()
       ]);
       setItems(Array.isArray(itemsData) ? itemsData : []);
@@ -59,7 +60,10 @@ const Items = () => {
                            (item.item_code || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = !categoryFilter || item.category_id == categoryFilter;
       const matchesStatus = !statusFilter || item.status === statusFilter;
-      return matchesSearch && matchesCategory && matchesStatus;
+      const matchesOfficerType = officerTypeFilter === 'all' ||
+                                   item.officer_type === officerTypeFilter ||
+                                   item.officer_type === 'both';
+      return matchesSearch && matchesCategory && matchesStatus && matchesOfficerType;
     })
     .sort((a, b) => (statusOrder[a.status] || 4) - (statusOrder[b.status] || 4));
 
@@ -73,7 +77,7 @@ const Items = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoryFilter, statusFilter]);
+  }, [searchQuery, categoryFilter, statusFilter, officerTypeFilter]);
 
   const handleAddItem = () => {
     setEditingItem(null);
@@ -182,6 +186,8 @@ const Items = () => {
         onCategoryChange={setCategoryFilter}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
+        officerTypeFilter={officerTypeFilter}
+        onOfficerTypeChange={setOfficerTypeFilter}
         categories={categories}
       />
       <ItemsTable

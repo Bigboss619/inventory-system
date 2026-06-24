@@ -29,7 +29,9 @@ const getStatus = (quantity, minStock) => {
 
 // Get all items
 router.get("/", (req, res) => {
-    const sql = `
+    const { officer_type } = req.query;
+
+    let sql = `
         SELECT i.*, c.name as category_name,
                CASE
                    WHEN i.quantity = 0 THEN 'out'
@@ -38,10 +40,18 @@ router.get("/", (req, res) => {
                END as status
         FROM items i
         LEFT JOIN categories c ON i.category_id = c.id
-        ORDER BY i.id DESC
     `;
 
-    db.query(sql, (err, results) => {
+    const params = [];
+
+    if (officer_type && officer_type !== 'all') {
+        sql += " WHERE i.officer_type = ? OR i.officer_type = 'both'";
+        params.push(officer_type);
+    }
+
+    sql += " ORDER BY i.id DESC";
+
+    db.query(sql, params, (err, results) => {
         if (err) {
             return res.status(500).json({ message: "Error fetching items", error: err });
         }
@@ -77,7 +87,7 @@ router.get("/:id", (req, res) => {
 
 // Create new item
 router.post("/", async (req, res) => {
-    const { name, description, categoryId, unit, quantity, minStock } = req.body;
+    const { name, description, categoryId, unit, quantity, minStock, officerType } = req.body;
 
     if (!name || !categoryId) {
         return res.status(400).json({ message: "Name and category are required" });
@@ -88,10 +98,11 @@ router.post("/", async (req, res) => {
         const qty = quantity || 0;
         const min = minStock || 5;
         const status = getStatus(qty, min);
+        const officerTypeValue = officerType || 'both';
 
-        const sql = "INSERT INTO items (item_code, name, description, category_id, unit, quantity, min_stock_level) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        const sql = "INSERT INTO items (item_code, name, description, category_id, unit, quantity, min_stock_level, officer_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        db.query(sql, [itemCode, name, description || null, categoryId, unit || 'pcs', qty, min], (err, results) => {
+        db.query(sql, [itemCode, name, description || null, categoryId, unit || 'pcs', qty, min, officerTypeValue], (err, results) => {
             if (err) {
                 return res.status(500).json({ message: "Error creating item", error: err });
             }
@@ -105,7 +116,7 @@ router.post("/", async (req, res) => {
 // Update item
 router.put("/:id", (req, res) => {
     const { id } = req.params;
-    const { name, description, categoryId, unit, quantity, minStock, status } = req.body;
+    const { name, description, categoryId, unit, quantity, minStock, status, officerType } = req.body;
 
     // Check if item exists
     const checkSql = "SELECT id FROM items WHERE id = ?";
@@ -144,6 +155,10 @@ router.put("/:id", (req, res) => {
         if (minStock !== undefined) {
             updateFields.push("min_stock_level = ?");
             updateValues.push(minStock);
+        }
+        if (officerType) {
+            updateFields.push("officer_type = ?");
+            updateValues.push(officerType);
         }
 
         if (updateFields.length === 0) {

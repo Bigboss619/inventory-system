@@ -211,8 +211,10 @@ export const checkCategoryRecords = async (id) => {
 };
 
 // Items API
-export const getItems = async () => {
-  const response = await fetch(`${API_URL}/items`);
+export const getItems = async (params = {}) => {
+  const queryString = new URLSearchParams(params).toString();
+  const url = queryString ? `${API_URL}/items?${queryString}` : `${API_URL}/items`;
+  const response = await fetch(url);
   return response.json();
 };
 

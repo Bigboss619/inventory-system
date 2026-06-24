@@ -8,7 +8,8 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading, readOnl
     description: '',
     unit: 'pcs',
     quantity: 0,
-    minStock: 5
+    minStock: 5,
+    officerType: 'both'
   });
 
   useEffect(() => {
@@ -19,7 +20,8 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading, readOnl
         description: item?.description || '',
         unit: item?.unit || 'pcs',
         quantity: item?.quantity || 0,
-        minStock: item?.min_stock_level || 5
+        minStock: item?.min_stock_level || 5,
+        officerType: item?.officer_type || 'both'
       });
     }
   }, [isOpen, item]);
@@ -142,6 +144,21 @@ const ItemModal = ({ isOpen, onClose, onSave, item, categories, loading, readOnl
                 disabled={readOnly}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Officer Type</label>
+            <select
+              name="officerType"
+              value={formData.officerType}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={readOnly}
+            >
+              <option value="both">Both (Trade & Retail)</option>
+              <option value="trade">Trade Officer</option>
+              <option value="retail">Retail Officer</option>
+            </select>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
