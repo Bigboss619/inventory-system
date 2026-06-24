@@ -79,6 +79,7 @@ const DepartmentSettings = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const fetchDepartments = async () => {
     try {
@@ -253,6 +254,13 @@ const DepartmentSettings = () => {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };
@@ -266,6 +274,7 @@ const UserRolesSettings = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', status: 'Active' });
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
   const { user: currentUser } = useAuth();
 
   const fetchUsers = async () => {
@@ -557,6 +566,13 @@ const UserRolesSettings = () => {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal({ open: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 };
