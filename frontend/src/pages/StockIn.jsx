@@ -28,10 +28,14 @@ const StockIn = () => {
 
   const fetchData = async () => {
     setFetching(true);
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const officerType = storedUser.officer_type || 'both';
+    const isSuperAdmin = storedUser.role === 'Super Admin';
+
     try {
       const [stockInData, itemsData] = await Promise.all([
         getStockIn(),
-        getItems()
+        getItems(isSuperAdmin ? {} : { officer_type: officerType })
       ]);
       setStockIn(Array.isArray(stockInData) ? stockInData : []);
       setItems(Array.isArray(itemsData) ? itemsData : []);

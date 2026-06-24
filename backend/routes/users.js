@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Get all users
 router.get("/", (req, res) => {
-    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department_id, status, profile_image, created_at, updated_at FROM users ORDER BY id DESC";
+    const sql = "SELECT id, first_name, last_name, email, phone, address, role, officer_type, department_id, status, profile_image, created_at, updated_at FROM users ORDER BY id DESC";
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -19,7 +19,7 @@ router.get("/", (req, res) => {
 // Get single user by ID
 router.get("/:id", (req, res) => {
     const { id } = req.params;
-    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department_id, status, profile_image, created_at, updated_at FROM users WHERE id = ?";
+    const sql = "SELECT id, first_name, last_name, email, phone, address, role, officer_type, department_id, status, profile_image, created_at, updated_at FROM users WHERE id = ?";
 
     db.query(sql, [id], (err, results) => {
         if (err) {
@@ -34,7 +34,7 @@ router.get("/:id", (req, res) => {
 
 // Create new user
 router.post("/", async (req, res) => {
-    const { firstName, lastName, email, password, phone, address, role, departmentId } = req.body;
+    const { firstName, lastName, email, password, phone, address, role, departmentId, officerType } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ message: "First name, last name, email, and password are required" });
@@ -42,10 +42,11 @@ router.post("/", async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
+        const officerTypeValue = officerType || 'both';
 
-        const sql = "INSERT INTO users (first_name, last_name, email, password, phone, address, role, department_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        const sql = "INSERT INTO users (first_name, last_name, email, password, phone, address, role, department_id, officer_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        db.query(sql, [firstName, lastName, email, hashedPassword, phone, address, role || 'Staff', departmentId || null], (err, results) => {
+        db.query(sql, [firstName, lastName, email, hashedPassword, phone, address, role || 'Staff', departmentId || null, officerTypeValue], (err, results) => {
             if (err) {
                 if (err.code === 'ER_DUP_ENTRY') {
                     return res.status(400).json({ message: "Email already exists" });
@@ -62,7 +63,7 @@ router.post("/", async (req, res) => {
 // Update user
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
-    const { firstName, lastName, email, password, phone, address, role, departmentId, status } = req.body;
+    const { firstName, lastName, email, password, phone, address, role, departmentId, status, officerType } = req.body;
 
     // Check if user exists
     const checkSql = "SELECT id FROM users WHERE id = ?";
@@ -114,6 +115,10 @@ router.put("/:id", async (req, res) => {
         if (status) {
             updateFields.push("status = ?");
             updateValues.push(status);
+        }
+        if (officerType) {
+            updateFields.push("officer_type = ?");
+            updateValues.push(officerType);
         }
 
         if (updateFields.length === 0) {

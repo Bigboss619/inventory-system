@@ -45,6 +45,7 @@ router.post("/login", async (req, res) => {
                 phone: user.phone,
                 address: user.address,
                 role: user.role,
+                officer_type: user.officer_type || 'both',
                 department_id: user.department_id,
                 profileImage: user.profile_image
             }
@@ -79,7 +80,7 @@ router.get("/me", (req, res) => {
         return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const sql = "SELECT id, first_name, last_name, email, phone, address, role, department_id, profile_image FROM users WHERE id = ?";
+    const sql = "SELECT id, first_name, last_name, email, phone, address, role, officer_type, department_id, profile_image FROM users WHERE id = ?";
     db.query(sql, [userId], (err, results) => {
         if (err) {
             return res.status(500).json({ message: "Server error" });
@@ -98,6 +99,7 @@ router.get("/me", (req, res) => {
             phone: user.phone,
             address: user.address,
             role: user.role,
+            officer_type: user.officer_type || 'both',
             department_id: user.department_id,
             profileImage: user.profile_image
         });

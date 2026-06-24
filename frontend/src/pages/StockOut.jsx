@@ -31,10 +31,14 @@ const StockOut = () => {
 
   const fetchData = async () => {
     setFetching(true);
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const officerType = storedUser.officer_type || 'both';
+    const isSuperAdmin = storedUser.role === 'Super Admin';
+
     try {
       const [stockOutData, itemsData, staffData, departmentsData] = await Promise.all([
         getStockOut(),
-        getItems(),
+        getItems(isSuperAdmin ? {} : { officer_type: officerType }),
         getStaff(),
         getDepartments()
       ]);

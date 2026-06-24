@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     address TEXT,
     role ENUM('Super Admin', 'Inventory Officer', 'Document Officer', 'Staff') DEFAULT 'Staff',
+    officer_type ENUM('trade', 'retail', 'both') DEFAULT 'both',
     department_id INT,
     status ENUM('Active', 'Inactive') DEFAULT 'Active',
     profile_image VARCHAR(255),
