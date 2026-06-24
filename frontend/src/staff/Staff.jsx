@@ -9,6 +9,7 @@ import StaffTable from './StaffTable';
 import StaffModal from './StaffModal';
 import ViewStaffModal from './ViewStaffModal';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import Pagination from '../components/ui/Pagination';
 
 const Staff = () => {
   const [staff, setStaff] = useState([]);
@@ -22,6 +23,8 @@ const Staff = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch staff and departments on mount
   useEffect(() => {
@@ -68,6 +71,18 @@ const Staff = () => {
       return matchesSearch && matchesDepartment;
     });
   }, [staff, searchQuery, departmentFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+  const paginatedStaff = filteredStaff.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, departmentFilter]);
 
   const handleAddStaff = () => {
     setEditingStaff(null);
@@ -174,11 +189,18 @@ const Staff = () => {
         departmentOptions={departmentOptions}
       />
       <StaffTable
-        staff={filteredStaff}
+        staff={paginatedStaff}
         fetching={fetching}
         onView={handleViewStaff}
         onEdit={handleEditStaff}
         onDelete={handleDeleteStaff}
+      />
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={filteredStaff.length}
+        itemsPerPage={itemsPerPage}
       />
       <StaffModal
         isOpen={modalOpen}
