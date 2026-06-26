@@ -9,28 +9,31 @@ import {
   FiX,
   FiChevronLeft,
   FiChevronRight,
-  FiTrash2
+  FiTrash2,
+  FiMonitor,
+  FiCoffee
 } from 'react-icons/fi';
 import {
   getBoardroomBookings,
   createBoardroomBooking,
   cancelBoardroomBooking,
-  getAvailableSlots
+  getAvailableSlots,
+  getStaff
 } from '../services/api';
-import { useAuth } from '../context/AuthContext';
 
 const Boardroom = () => {
   const [bookings, setBookings] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [modalOpen, setModalOpen] = useState(false);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const { user } = useAuth();
 
   useEffect(() => {
     fetchBookings();
+    fetchStaff();
   }, [selectedDate]);
 
   useEffect(() => {
@@ -52,6 +55,15 @@ const Boardroom = () => {
     }
   };
 
+  const fetchStaff = async () => {
+    try {
+      const data = await getStaff();
+      setStaff(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setStaff([]);
+    }
+  };
+
   const fetchAvailableSlots = async () => {
     try {
       const slots = await getAvailableSlots(selectedDate);
@@ -65,7 +77,7 @@ const Boardroom = () => {
     setLoading(true);
     try {
       await createBoardroomBooking(formData);
-      toast.success('Booking created successfully');
+      toast.success('Booking submitted successfully');
       fetchBookings();
       setModalOpen(false);
     } catch (error) {
@@ -87,7 +99,6 @@ const Boardroom = () => {
     }
   };
 
-  // Generate calendar days
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -95,12 +106,10 @@ const Boardroom = () => {
     const lastDay = new Date(year, month + 1, 0);
     const days = [];
 
-    // Add empty days for padding
     for (let i = 0; i < firstDay.getDay(); i++) {
       days.push(null);
     }
 
-    // Add actual days
     for (let i = 1; i <= lastDay.getDate(); i++) {
       days.push(new Date(year, month, i));
     }
@@ -144,14 +153,14 @@ const Boardroom = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Boardroom Booking</h1>
-          <p className="text-gray-600">Book and manage boardroom reservations</p>
+          <p className="text-gray-600">Book the boardroom for your meeting</p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <FiPlus className="w-5 h-5" />
-          New Booking
+          Book Now
         </button>
       </div>
 
@@ -175,7 +184,6 @@ const Boardroom = () => {
             </button>
           </div>
 
-          {/* Days of week */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
@@ -184,7 +192,6 @@ const Boardroom = () => {
             ))}
           </div>
 
-          {/* Calendar days */}
           <div className="grid grid-cols-7 gap-1">
             {generateCalendarDays().map((date, index) => (
               <button
@@ -235,24 +242,37 @@ const Boardroom = () => {
                         <FiClock className="w-4 h-4" />
                         {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
                       </div>
-                      <p className="font-medium text-gray-800">{booking.purpose}</p>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                        <FiUsers className="w-4 h-4" />
-                        {booking.attendees} attendee{booking.attendees > 1 ? 's' : ''}
+                      <p className="font-medium text-gray-800">{booking.meeting_title}</p>
+                      <p className="text-sm text-gray-500 mt-1">{booking.purpose}</p>
+                      <div className="flex items-center gap-3 text-sm text-gray-500 mt-2">
+                        <span className="flex items-center gap-1">
+                          <FiUsers className="w-4 h-4" />
+                          {booking.expected_attendees}
+                        </span>
+                        {booking.refreshments === 'Yes' && (
+                          <span className="flex items-center gap-1">
+                            <FiCoffee className="w-4 h-4" />
+                            Refreshments
+                          </span>
+                        )}
+                        {booking.projector === 'Yes' && (
+                          <span className="flex items-center gap-1">
+                            <FiMonitor className="w-4 h-4" />
+                            Projector
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
-                        By: {booking.user_name}
+                        By: {booking.requested_by} ({booking.department_name})
                       </p>
+                      <span className={`inline-block text-xs px-2 py-0.5 rounded mt-2 ${
+                        booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                        booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {booking.status}
+                      </span>
                     </div>
-                    {(user?.id === booking.user_id || user?.role === 'Super Admin') && (
-                      <button
-                        onClick={() => handleCancelBooking(booking.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Cancel booking"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}
@@ -269,6 +289,7 @@ const Boardroom = () => {
           onSave={handleCreateBooking}
           selectedDate={selectedDate}
           availableSlots={availableSlots}
+          staff={staff}
           loading={loading}
         />
       )}
@@ -276,18 +297,34 @@ const Boardroom = () => {
   );
 };
 
-const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, loading }) => {
+const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, staff, loading }) => {
   const [formData, setFormData] = useState({
+    staffId: '',
+    meetingTitle: '',
+    purpose: '',
     bookingDate: selectedDate,
     startTime: '',
     endTime: '',
-    purpose: '',
-    attendees: 1
+    expectedAttendees: 1,
+    refreshments: 'No',
+    projector: 'No',
+    notes: ''
   });
+
+  const [selectedStaff, setSelectedStaff] = useState(null);
 
   useEffect(() => {
     setFormData(prev => ({ ...prev, bookingDate: selectedDate }));
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (formData.staffId && staff.length > 0) {
+      const found = staff.find(s => s.id === parseInt(formData.staffId));
+      setSelectedStaff(found || null);
+    } else {
+      setSelectedStaff(null);
+    }
+  }, [formData.staffId, staff]);
 
   useEffect(() => {
     if (formData.startTime && availableSlots.length > 0) {
@@ -305,9 +342,9 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, l
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">New Booking</h2>
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+          <h2 className="text-lg font-semibold">Book Boardroom</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -317,10 +354,70 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, l
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {/* Requested By (Staff Dropdown) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Requested By <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.staffId}
+              onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="">Select your name</option>
+              {staff.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.first_name} {s.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Department (Auto-display) */}
+          {selectedStaff && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+              <input
+                type="text"
+                value={selectedStaff.department_name || ''}
+                className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-600"
+                readOnly
+              />
+            </div>
+          )}
+
+          {/* Meeting Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Meeting Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.meetingTitle}
+              onChange={(e) => setFormData({ ...formData, meetingTitle: e.target.value })}
+              placeholder="e.g., Weekly Team Meeting"
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* Purpose */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
+            <textarea
+              value={formData.purpose}
+              onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+              placeholder="Brief description of the meeting"
+              rows={2}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
           {/* Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
+              Date <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -335,7 +432,7 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, l
           {/* Start Time */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Time
+              Start Time <span className="text-red-500">*</span>
             </label>
             <select
               value={formData.startTime}
@@ -343,7 +440,7 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, l
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             >
-              <option value="">Select time</option>
+              <option value="">Select start time</option>
               {availableSlots.map((slot, index) => (
                 <option key={index} value={slot.start}>
                   {slot.start.slice(0, 5)}
@@ -351,40 +448,63 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, l
               ))}
             </select>
             {availableSlots.length === 0 && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-orange-500 mt-1">
                 No available slots for this date
               </p>
             )}
           </div>
 
-          {/* Purpose */}
+          {/* Expected Attendees */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Purpose
+              Expected Attendees <span className="text-red-500">*</span>
             </label>
             <input
-              type="text"
-              value={formData.purpose}
-              onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-              placeholder="Meeting purpose or title"
+              type="number"
+              value={formData.expectedAttendees}
+              onChange={(e) => setFormData({ ...formData, expectedAttendees: parseInt(e.target.value) || 1 })}
+              min={1}
+              max={20}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
           </div>
 
-          {/* Attendees */}
+          {/* Refreshments */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Number of Attendees
-            </label>
-            <input
-              type="number"
-              value={formData.attendees}
-              onChange={(e) => setFormData({ ...formData, attendees: parseInt(e.target.value) || 1 })}
-              min={1}
-              max={20}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Refreshments Required?</label>
+            <select
+              value={formData.refreshments}
+              onChange={(e) => setFormData({ ...formData, refreshments: e.target.value })}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
+            >
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+
+          {/* Projector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Projector Needed?</label>
+            <select
+              value={formData.projector}
+              onChange={(e) => setFormData({ ...formData, projector: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Any additional information"
+              rows={2}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
@@ -402,7 +522,7 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, l
               disabled={loading || availableSlots.length === 0}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Booking...' : 'Book'}
+              {loading ? 'Submitting...' : 'Submit Booking'}
             </button>
           </div>
         </form>

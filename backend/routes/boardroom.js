@@ -8,11 +8,14 @@ router.get("/", (req, res) => {
     const { date, startDate, endDate } = req.query;
 
     let sql = `
-        SELECT b.id, b.user_id, b.booking_date, b.start_time, b.end_time, b.purpose,
-               b.attendees, b.status, b.created_at, b.updated_at,
-               CONCAT(u.first_name, ' ', u.last_name) as user_name, u.email as user_email
+        SELECT b.id, b.staff_id, b.meeting_title, b.purpose, b.booking_date,
+               b.start_time, b.end_time, b.expected_attendees, b.refreshments,
+               b.projector, b.notes, b.status, b.created_at, b.updated_at,
+               CONCAT(s.first_name, ' ', s.last_name) as requested_by,
+               d.name as department_name
         FROM boardroom_bookings b
-        LEFT JOIN users u ON b.user_id = u.id
+        LEFT JOIN staff s ON b.staff_id = s.id
+        LEFT JOIN departments d ON s.department_id = d.id
         WHERE b.status != 'Cancelled'
     `;
     const params = [];
@@ -39,11 +42,14 @@ router.get("/", (req, res) => {
 router.get("/:id", (req, res) => {
     const { id } = req.params;
     const sql = `
-        SELECT b.id, b.user_id, b.booking_date, b.start_time, b.end_time, b.purpose,
-               b.attendees, b.status, b.created_at, b.updated_at,
-               CONCAT(u.first_name, ' ', u.last_name) as user_name, u.email as user_email
+        SELECT b.id, b.staff_id, b.meeting_title, b.purpose, b.booking_date,
+               b.start_time, b.end_time, b.expected_attendees, b.refreshments,
+               b.projector, b.notes, b.status, b.created_at, b.updated_at,
+               CONCAT(s.first_name, ' ', s.last_name) as requested_by,
+               d.name as department_name
         FROM boardroom_bookings b
-        LEFT JOIN users u ON b.user_id = u.id
+        LEFT JOIN staff s ON b.staff_id = s.id
+        LEFT JOIN departments d ON s.department_id = d.id
         WHERE b.id = ?
     `;
 
@@ -58,17 +64,15 @@ router.get("/:id", (req, res) => {
     });
 });
 
-// Create new booking
+// Create new booking (no auth required)
 router.post("/", (req, res) => {
-    const { userId } = req.headers;
-    const { bookingDate, startTime, endTime, purpose, attendees } = req.body;
+    const {
+        staffId, meetingTitle, purpose, bookingDate, startTime, endTime,
+        expectedAttendees, refreshments, projector, notes
+    } = req.body;
 
-    if (!userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    if (!bookingDate || !startTime || !endTime || !purpose) {
-        return res.status(400).json({ message: "Booking date, start time, end time, and purpose are required" });
+    if (!staffId || !meetingTitle || !bookingDate || !startTime || !endTime) {
+        return res.status(400).json({ message: "Required fields are missing" });
     }
 
     // Check for time conflicts
@@ -92,11 +96,16 @@ router.post("/", (req, res) => {
         }
 
         const sql = `
-            INSERT INTO boardroom_bookings (user_id, booking_date, start_time, end_time, purpose, attendees)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO boardroom_bookings
+            (staff_id, meeting_title, purpose, booking_date, start_time, end_time,
+             expected_attendees, refreshments, projector, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        db.query(sql, [userId, bookingDate, startTime, endTime, purpose, attendees || 1], (err, results) => {
+        db.query(sql, [
+            staffId, meetingTitle, purpose, bookingDate, startTime, endTime,
+            expectedAttendees || 1, refreshments || 'No', projector || 'No', notes
+        ], (err, results) => {
             if (err) {
                 return res.status(500).json({ message: "Error creating booking", error: err });
             }
@@ -108,8 +117,10 @@ router.post("/", (req, res) => {
 // Update booking
 router.put("/:id", (req, res) => {
     const { id } = req.params;
-    const { userId } = req.headers;
-    const { bookingDate, startTime, endTime, purpose, attendees, status } = req.body;
+    const {
+        meetingTitle, purpose, bookingDate, startTime, endTime,
+        expectedAttendees, refreshments, projector, notes, status
+    } = req.body;
 
     // Check if booking exists
     const checkSql = "SELECT * FROM boardroom_bookings WHERE id = ?";
@@ -121,22 +132,18 @@ router.put("/:id", (req, res) => {
             return res.status(404).json({ message: "Booking not found" });
         }
 
-        const booking = results[0];
-
-        // Only the booking owner or Super Admin can update
-        if (booking.user_id !== parseInt(userId)) {
-            const roleCheck = "SELECT role FROM users WHERE id = ?";
-            db.query(roleCheck, [userId], (err, userResults) => {
-                if (err || userResults.length === 0 || userResults[0].role !== 'Super Admin') {
-                    return res.status(403).json({ message: "You can only update your own bookings" });
-                }
-            });
-        }
-
         // Build update query dynamically
         let updateFields = [];
         let updateValues = [];
 
+        if (meetingTitle) {
+            updateFields.push("meeting_title = ?");
+            updateValues.push(meetingTitle);
+        }
+        if (purpose !== undefined) {
+            updateFields.push("purpose = ?");
+            updateValues.push(purpose);
+        }
         if (bookingDate) {
             updateFields.push("booking_date = ?");
             updateValues.push(bookingDate);
@@ -149,13 +156,21 @@ router.put("/:id", (req, res) => {
             updateFields.push("end_time = ?");
             updateValues.push(endTime);
         }
-        if (purpose) {
-            updateFields.push("purpose = ?");
-            updateValues.push(purpose);
+        if (expectedAttendees) {
+            updateFields.push("expected_attendees = ?");
+            updateValues.push(expectedAttendees);
         }
-        if (attendees !== undefined) {
-            updateFields.push("attendees = ?");
-            updateValues.push(attendees);
+        if (refreshments) {
+            updateFields.push("refreshments = ?");
+            updateValues.push(refreshments);
+        }
+        if (projector) {
+            updateFields.push("projector = ?");
+            updateValues.push(projector);
+        }
+        if (notes !== undefined) {
+            updateFields.push("notes = ?");
+            updateValues.push(notes);
         }
         if (status) {
             updateFields.push("status = ?");
@@ -182,51 +197,23 @@ router.put("/:id", (req, res) => {
 // Cancel booking
 router.delete("/:id", (req, res) => {
     const { id } = req.params;
-    const { userId } = req.headers;
 
-    // Check if booking exists
-    const checkSql = "SELECT * FROM boardroom_bookings WHERE id = ?";
-    db.query(checkSql, [id], (err, results) => {
-        if (err) {
-            return res.status(500).json({ message: "Error checking booking", error: err });
-        }
-        if (results.length === 0) {
-            return res.status(404).json({ message: "Booking not found" });
-        }
-
-        const booking = results[0];
-
-        // Only the booking owner or Super Admin can cancel
-        if (booking.user_id !== parseInt(userId)) {
-            const roleCheck = "SELECT role FROM users WHERE id = ?";
-            db.query(roleCheck, [userId], (err, userResults) => {
-                if (err || userResults.length === 0 || userResults[0].role !== 'Super Admin') {
-                    return res.status(403).json({ message: "You can only cancel your own bookings" });
-                }
-                // Proceed with cancellation by Super Admin
-                performCancellation(id, res);
-            });
-        } else {
-            performCancellation(id, res);
-        }
-    });
-});
-
-function performCancellation(id, res) {
     const sql = "UPDATE boardroom_bookings SET status = 'Cancelled' WHERE id = ?";
     db.query(sql, [id], (err, results) => {
         if (err) {
             return res.status(500).json({ message: "Error cancelling booking", error: err });
         }
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
         res.json({ message: "Booking cancelled successfully" });
     });
-}
+});
 
 // Get available time slots for a specific date
 router.get("/available-slots/:date", (req, res) => {
     const { date } = req.params;
 
-    // Define working hours: 8 AM to 6 PM
     const workingHoursStart = "08:00:00";
     const workingHoursEnd = "18:00:00";
 
@@ -242,22 +229,18 @@ router.get("/available-slots/:date", (req, res) => {
             return res.status(500).json({ message: "Error fetching time slots", error: err });
         }
 
-        // Generate available slots
         const bookedSlots = results.map(r => ({
             start: r.start_time,
             end: r.end_time
         }));
 
-        // Create time array from 8:00 to 18:00 in 30-minute intervals
         const availableSlots = [];
 
-        // Helper to parse time string to minutes
         const timeToMinutes = (timeStr) => {
             const [hours, minutes] = timeStr.split(':').map(Number);
             return hours * 60 + minutes;
         };
 
-        // Helper to convert minutes to time string
         const minutesToTime = (mins) => {
             const hours = Math.floor(mins / 60);
             const minutes = mins % 60;
@@ -271,7 +254,6 @@ router.get("/available-slots/:date", (req, res) => {
             const slotStart = minutesToTime(currentTime);
             const slotEnd = minutesToTime(currentTime + 30);
 
-            // Check if this slot conflicts with any booking
             const isBooked = bookedSlots.some(slot => {
                 const slotStartMins = timeToMinutes(slot.start);
                 const slotEndMins = timeToMinutes(slot.end);

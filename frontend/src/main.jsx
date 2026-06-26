@@ -40,18 +40,12 @@ const router = createBrowserRouter([
     errorElement: <ErrorBoundary />,
     children: [
       { path: '/', element: <Home /> },
+      { path: '/boardroom', element: <Boardroom /> },
       {
         path: '/dashboard',
         element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/dashboard', element: <Dashboard /> }
-        ]
-      },
-      {
-        path: '/boardroom',
-        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
-        children: [
-          { path: '/boardroom', element: <Boardroom /> }
         ]
       },
       {

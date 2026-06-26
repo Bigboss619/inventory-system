@@ -596,12 +596,10 @@ export const getBoardroomBookingById = async (id) => {
 };
 
 export const createBoardroomBooking = async (data) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const response = await fetch(`${API_URL}/boardroom`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'user-id': user.id
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(data),
   });
