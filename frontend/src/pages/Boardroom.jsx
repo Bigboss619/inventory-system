@@ -21,10 +21,19 @@ import {
   getStaff
 } from '../services/api';
 
+// Helper to format date as YYYY-MM-DD in local timezone (not UTC)
+const formatDateToLocal = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const Boardroom = () => {
   const [bookings, setBookings] = useState([]);
   const [staff, setStaff] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(formatDateToLocal(new Date()));
   const [modalOpen, setModalOpen] = useState(false);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -122,7 +131,7 @@ const Boardroom = () => {
 
   const isSelected = (date) => {
     if (!date) return false;
-    return date.toISOString().split('T')[0] === selectedDate;
+    return formatDateToLocal(date) === selectedDate;
   };
 
   const isPast = (date) => {
@@ -233,7 +242,7 @@ const Boardroom = () => {
                 <button
                   key={index}
                   disabled={!date || isPast(date)}
-                  onClick={() => date && setSelectedDate(date.toISOString().split('T')[0])}
+                  onClick={() => date && setSelectedDate(formatDateToLocal(date))}
                   className={`
                     h-14 rounded-xl transition-all flex flex-col items-center justify-center text-sm font-medium
                     ${!date ? 'invisible' : ''}
@@ -244,7 +253,7 @@ const Boardroom = () => {
                   `}
                 >
                   <span>{date?.getDate()}</span>
-                  {date && bookings.find(b => b.booking_date === date.toISOString().split('T')[0]) && !isSelected(date) && (
+                  {date && bookings.find(b => b.booking_date === formatDateToLocal(date)) && !isSelected(date) && (
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-1"></span>
                   )}
                 </button>
@@ -478,7 +487,7 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
                 value={formData.bookingDate}
                 onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min={new Date().toISOString().split('T')[0]}
+                min={formatDateToLocal(new Date())}
                 required
               />
             </div>
