@@ -120,10 +120,10 @@ const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, depart
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-xl mx-4 my-8">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-xl">
           <h2 className="text-lg font-semibold text-gray-900">
             {record ? 'Edit Issue' : 'Issue Item'}
           </h2>
@@ -132,7 +132,7 @@ const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, depart
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Select Staff *</label>
