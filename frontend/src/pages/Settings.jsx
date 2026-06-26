@@ -273,7 +273,7 @@ const UserRolesSettings = () => {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', status: 'Active' });
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', officerType: 'null', status: 'Active' });
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
   const { user: currentUser } = useAuth();
 
@@ -323,6 +323,7 @@ const UserRolesSettings = () => {
         password: '',
         departmentId: user.department_id || user.department_id || '',
         role: user.role,
+        officerType: user.officer_type || 'null',
         status: user.status || 'Active'
       });
     } else {
@@ -335,15 +336,20 @@ const UserRolesSettings = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', status: 'Active' });
+    setFormData({ firstName: '', lastName: '', email: '', password: '', departmentId: '', role: 'Staff', officerType: 'null', status: 'Active' });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const userData = {
-        ...formData,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password || undefined,
         departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
+        role: formData.role,
+        officerType: formData.officerType,
         status: formData.status
       };
       if (editingUser) {
@@ -530,18 +536,31 @@ const UserRolesSettings = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Officer Type</label>
                   <select
-                    value={formData.departmentId}
-                    onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+                    value={formData.officerType}
+                    onChange={(e) => setFormData({ ...formData, officerType: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
-                    <option value="">Select Department</option>
-                    {departments.map(dept => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
+                    <option value="both">Both</option>
+                    <option value="trade">Trade</option>
+                    <option value="retail">Retail</option>
+                    <option value="null">null</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                <select
+                  value={formData.departmentId}
+                  onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
