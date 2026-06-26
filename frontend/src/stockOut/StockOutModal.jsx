@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { FiX, FiLoader, FiSearch } from 'react-icons/fi';
 
 const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, departments, loading, record, readOnly = false, categories = [] }) => {
@@ -15,6 +16,9 @@ const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, depart
   const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [staffDeptFilter, setStaffDeptFilter] = useState('');
+  const [staffDropdownOpen, setStaffDropdownOpen] = useState(false);
 
   // Filter items by search query and category
   const filteredItems = useMemo(() => {
@@ -34,6 +38,24 @@ const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, depart
 
     return result;
   }, [allItems, itemSearchQuery, categoryFilter]);
+
+  // Filter staff by search query and department
+  const filteredStaff = useMemo(() => {
+    let result = staff || [];
+
+    if (staffDeptFilter) {
+      result = result.filter(s => s.department_id === parseInt(staffDeptFilter));
+    }
+
+    if (staffSearchQuery.trim()) {
+      const query = staffSearchQuery.toLowerCase();
+      result = result.filter(s =>
+        `${s.first_name} ${s.last_name}`.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [staff, staffSearchQuery, staffDeptFilter]);
 
   useEffect(() => {
     if (isOpen) {
@@ -62,9 +84,12 @@ const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, depart
         });
         setItemSearchQuery('');
         setCategoryFilter('');
+        setStaffSearchQuery('');
+        setStaffDeptFilter('');
       }
       setError('');
       setItemDropdownOpen(false);
+      setStaffDropdownOpen(false);
     }
   }, [isOpen, record, allItems]);
 
@@ -135,36 +160,106 @@ const StockOutModal = ({ isOpen, onClose, onSave, items: allItems, staff, depart
         <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Staff *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department Filter</label>
               <select
-                name="staffId"
-                value={formData.staffId}
-                onChange={handleStaffChange}
+                value={staffDeptFilter}
+                onChange={(e) => {
+                  setStaffDeptFilter(e.target.value);
+                  setStaffSearchQuery('');
+                }}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
                 disabled={readOnly || !!record}
               >
-                <option value="">Select Staff</option>
-                {staff.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.first_name} {s.last_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-              <select
-                value={formData.departmentId}
-                disabled
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
-              >
-                <option value="">Auto-filled from staff</option>
+                <option value="">All Departments</option>
                 {departments.map(dept => (
                   <option key={dept.id} value={dept.id}>{dept.name}</option>
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department (Auto-filled)</label>
+              <select
+                value={formData.departmentId}
+                disabled
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
+              >
+                <option value="">
+                  {departments.find(d => d.id === parseInt(formData.departmentId))?.name || 'Select staff first'}
+                </option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Staff *</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={staffSearchQuery}
+                onChange={(e) => {
+                  setStaffSearchQuery(e.target.value);
+                  setFormData(prev => ({ ...prev, staffId: '', departmentId: '' }));
+                  setStaffDropdownOpen(true);
+                }}
+                onFocus={() => setStaffDropdownOpen(true)}
+                placeholder="Search staff by name..."
+                className="w-full px-4 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                disabled={readOnly || !!record}
+              />
+              <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            </div>
+
+            {/* Staff Dropdown */}
+            {staffDropdownOpen && filteredStaff.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {filteredStaff.slice(0, 20).map(staffMember => (
+                  <button
+                    key={staffMember.id}
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        staffId: staffMember.id.toString(),
+                        departmentId: staffMember.department_id || ''
+                      }));
+                      setStaffSearchQuery(`${staffMember.first_name} ${staffMember.last_name}`);
+                      setStaffDropdownOpen(false);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-blue-50 flex justify-between items-center"
+                  >
+                    <span>{staffMember.first_name} {staffMember.last_name}</span>
+                    <span className="text-xs text-gray-400">
+                      {departments.find(d => d.id === staffMember.department_id)?.name || ''}
+                    </span>
+                  </button>
+                ))}
+                {filteredStaff.length > 20 && (
+                  <div className="px-4 py-2 text-sm text-gray-500 bg-gray-50">
+                    Showing 20 of {filteredStaff.length} staff
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hidden select for form submission */}
+            <select
+              name="staffId"
+              value={formData.staffId}
+              onChange={handleStaffChange}
+              className="absolute opacity-0 pointer-events-none"
+              required
+            >
+              <option value="">Select Staff</option>
+              {staff.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.first_name} {s.last_name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
