@@ -29,6 +29,7 @@ const BoardroomAdmin = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [editFormData, setEditFormData] = useState({
     meetingTitle: '',
@@ -127,18 +128,25 @@ const BoardroomAdmin = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this booking?')) return;
-    setActionLoading(id);
+  const handleDelete = async () => {
+    if (!selectedBooking) return;
+    setActionLoading('deleting');
     try {
-      await cancelBoardroomBooking(id);
+      await cancelBoardroomBooking(selectedBooking.id);
       toast.success('Booking deleted successfully');
+      setDeleteModalOpen(false);
+      setSelectedBooking(null);
       fetchBookings();
     } catch (error) {
       toast.error(error.message || 'Failed to delete booking');
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const confirmDelete = (booking) => {
+    setSelectedBooking(booking);
+    setDeleteModalOpen(true);
   };
 
   const formatTime = (timeStr) => {
@@ -346,7 +354,7 @@ const BoardroomAdmin = () => {
                               <FiEdit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(booking.id)}
+                              onClick={() => confirmDelete(booking)}
                               disabled={actionLoading === booking.id}
                               className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
                               title="Delete"
@@ -483,6 +491,41 @@ const BoardroomAdmin = () => {
                 className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 {actionLoading === 'saving' ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FiTrash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Delete Booking</h2>
+              <p className="text-gray-600">
+                Are you sure you want to delete this booking for <strong>{selectedBooking?.meeting_title}</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setSelectedBooking(null);
+                }}
+                className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={actionLoading === 'deleting'}
+                className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading === 'deleting' ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
