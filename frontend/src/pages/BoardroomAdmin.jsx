@@ -11,11 +11,15 @@ import {
   FiFilter,
   FiHome,
   FiCheck,
-  FiX
+  FiX,
+  FiEdit,
+  FiTrash2
 } from 'react-icons/fi';
 import {
   getBoardroomBookings,
-  updateBoardroomBooking
+  updateBoardroomBooking,
+  cancelBoardroomBooking,
+  getBoardroomBookingById
 } from '../services/api';
 
 const BoardroomAdmin = () => {
@@ -24,6 +28,19 @@ const BoardroomAdmin = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    meetingTitle: '',
+    purpose: '',
+    bookingDate: '',
+    startTime: '',
+    endTime: '',
+    expectedAttendees: 1,
+    refreshments: 'No',
+    projector: 'No',
+    notes: ''
+  });
 
   useEffect(() => {
     fetchBookings();
@@ -59,6 +76,66 @@ const BoardroomAdmin = () => {
       fetchBookings();
     } catch (error) {
       toast.error(error.message || 'Failed to update booking');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleEdit = async (id) => {
+    try {
+      const booking = await getBoardroomBookingById(id);
+      setSelectedBooking(booking);
+      setEditFormData({
+        meetingTitle: booking.meeting_title || '',
+        purpose: booking.purpose || '',
+        bookingDate: booking.booking_date || '',
+        startTime: booking.start_time || '',
+        endTime: booking.end_time || '',
+        expectedAttendees: booking.expected_attendees || 1,
+        refreshments: booking.refreshments || 'No',
+        projector: booking.projector || 'No',
+        notes: booking.notes || ''
+      });
+      setEditModalOpen(true);
+    } catch (error) {
+      toast.error('Failed to load booking details');
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedBooking) return;
+    setActionLoading('saving');
+    try {
+      await updateBoardroomBooking(selectedBooking.id, {
+        meetingTitle: editFormData.meetingTitle,
+        purpose: editFormData.purpose,
+        bookingDate: editFormData.bookingDate,
+        startTime: editFormData.startTime,
+        endTime: editFormData.endTime,
+        expectedAttendees: editFormData.expectedAttendees,
+        refreshments: editFormData.refreshments,
+        projector: editFormData.projector,
+        notes: editFormData.notes
+      });
+      toast.success('Booking updated successfully');
+      setEditModalOpen(false);
+      fetchBookings();
+    } catch (error) {
+      toast.error(error.message || 'Failed to update booking');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this booking?')) return;
+    setActionLoading(id);
+    try {
+      await cancelBoardroomBooking(id);
+      toast.success('Booking deleted successfully');
+      fetchBookings();
+    } catch (error) {
+      toast.error(error.message || 'Failed to delete booking');
     } finally {
       setActionLoading(null);
     }
@@ -229,34 +306,56 @@ const BoardroomAdmin = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {booking.status === 'Pending' && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleStatusUpdate(booking.id, 'Confirmed')}
-                            disabled={actionLoading === booking.id}
-                            className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
-                            title="Approve"
-                          >
-                            {actionLoading === booking.id ? (
-                              <FiCheck className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <FiCheckCircle className="w-4 h-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleStatusUpdate(booking.id, 'Cancelled')}
-                            disabled={actionLoading === booking.id}
-                            className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
-                            title="Reject"
-                          >
-                            {actionLoading === booking.id ? (
-                              <FiX className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <FiXCircle className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        {booking.status === 'Pending' && (
+                          <>
+                            <button
+                              onClick={() => handleStatusUpdate(booking.id, 'Confirmed')}
+                              disabled={actionLoading === booking.id}
+                              className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
+                              title="Approve"
+                            >
+                              {actionLoading === booking.id ? (
+                                <FiCheck className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <FiCheckCircle className="w-4 h-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleStatusUpdate(booking.id, 'Cancelled')}
+                              disabled={actionLoading === booking.id}
+                              className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
+                              title="Reject"
+                            >
+                              {actionLoading === booking.id ? (
+                                <FiX className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <FiXCircle className="w-4 h-4" />
+                              )}
+                            </button>
+                          </>
+                        )}
+                        {booking.status === 'Confirmed' && (
+                          <>
+                            <button
+                              onClick={() => handleEdit(booking.id)}
+                              disabled={actionLoading === booking.id}
+                              className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
+                              title="Edit"
+                            >
+                              <FiEdit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(booking.id)}
+                              disabled={actionLoading === booking.id}
+                              className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
+                              title="Delete"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -265,6 +364,130 @@ const BoardroomAdmin = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Booking Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800">Edit Booking</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Meeting Title</label>
+                <input
+                  type="text"
+                  value={editFormData.meetingTitle}
+                  onChange={(e) => setEditFormData({ ...editFormData, meetingTitle: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Purpose</label>
+                <textarea
+                  value={editFormData.purpose}
+                  onChange={(e) => setEditFormData({ ...editFormData, purpose: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows="2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={editFormData.bookingDate}
+                    onChange={(e) => setEditFormData({ ...editFormData, bookingDate: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Expected Attendees</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editFormData.expectedAttendees}
+                    onChange={(e) => setEditFormData({ ...editFormData, expectedAttendees: parseInt(e.target.value) || 1 })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>
+                  <input
+                    type="time"
+                    value={editFormData.startTime?.substring(0, 5)}
+                    onChange={(e) => setEditFormData({ ...editFormData, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+                  <input
+                    type="time"
+                    value={editFormData.endTime?.substring(0, 5)}
+                    onChange={(e) => setEditFormData({ ...editFormData, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Refreshments</label>
+                  <select
+                    value={editFormData.refreshments}
+                    onChange={(e) => setEditFormData({ ...editFormData, refreshments: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Projector</label>
+                  <select
+                    value={editFormData.projector}
+                    onChange={(e) => setEditFormData({ ...editFormData, projector: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+                <textarea
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows="2"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={actionLoading === 'saving'}
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading === 'saving' ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
