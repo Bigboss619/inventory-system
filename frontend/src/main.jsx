@@ -27,6 +27,7 @@ const InventoryReport = lazy(() => import('./pages/InventoryReport'));
 const DocumentReport = lazy(() => import('./pages/DocumentReport'));
 const Users = lazy(() => import('./pages/Users'));
 const Boardroom = lazy(() => import('./pages/Boardroom'));
+const BoardroomAdmin = lazy(() => import('./pages/BoardroomAdmin'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -165,6 +166,13 @@ const router = createBrowserRouter([
         element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/users', element: <Users /> }
+        ]
+      },
+      {
+        path: '/admin/boardroom',
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
+        children: [
+          { path: '/admin/boardroom', element: <BoardroomAdmin /> }
         ]
       }
     ]

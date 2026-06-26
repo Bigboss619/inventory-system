@@ -25,6 +25,7 @@ export const ROUTE_PERMISSIONS = {
   '/reports/inventory': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER],
   '/reports/documents': [ROLES.SUPER_ADMIN, ROLES.DOCUMENT_OFFICER],
   '/users': [ROLES.SUPER_ADMIN],
+  '/admin/boardroom': [ROLES.SUPER_ADMIN],
   '/profile': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER, ROLES.DOCUMENT_OFFICER, ROLES.STAFF],
   '/settings': [ROLES.SUPER_ADMIN]
 };

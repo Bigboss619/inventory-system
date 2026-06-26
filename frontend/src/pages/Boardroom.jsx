@@ -468,7 +468,7 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
           </div>
 
           {/* Date & Time Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Date <span className="text-red-500">*</span>
@@ -492,12 +492,33 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
-                <option value="">Select time</option>
+                <option value="">Select</option>
                 {availableSlots.map((slot, index) => (
                   <option key={index} value={slot.start}>
                     {slot.start.slice(0, 5)}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                End Time <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.endTime}
+                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+                disabled={!formData.startTime}
+              >
+                <option value="">Select</option>
+                {availableSlots
+                  .filter(slot => slot.start > formData.startTime)
+                  .map((slot, index) => (
+                    <option key={index} value={slot.end}>
+                      {slot.end.slice(0, 5)}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>

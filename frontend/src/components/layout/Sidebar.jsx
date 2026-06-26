@@ -19,7 +19,8 @@ import {
   FiHome,
   FiTruck,
   FiLogOut,
-  FiCalendar
+  FiCalendar,
+  FiCheckSquare
 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { MENU_BY_ROLE, ROLES } from '../../config/permissions';
@@ -28,6 +29,7 @@ import { MENU_BY_ROLE, ROLES } from '../../config/permissions';
 const MENU_ITEMS = [
   { title: 'Dashboard', icon: FiHome, path: '/dashboard' },
   { title: 'Boardroom', icon: FiCalendar, path: '/boardroom' },
+  { title: 'Boardroom Admin', icon: FiCheckSquare, path: '/admin/boardroom' },
   {
     title: 'Inventory Management',
     icon: FiBox,

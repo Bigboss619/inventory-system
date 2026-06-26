@@ -3,9 +3,9 @@ const db = require("../config/config");
 
 const router = express.Router();
 
-// Get all bookings (with optional date filter)
+// Get all bookings (with optional date/status filter)
 router.get("/", (req, res) => {
-    const { date, startDate, endDate } = req.query;
+    const { date, startDate, endDate, status } = req.query;
 
     let sql = `
         SELECT b.id, b.staff_id, b.meeting_title, b.purpose, b.booking_date,
@@ -16,9 +16,20 @@ router.get("/", (req, res) => {
         FROM boardroom_bookings b
         LEFT JOIN staff s ON b.staff_id = s.id
         LEFT JOIN departments d ON s.department_id = d.id
-        WHERE b.status != 'Cancelled'
+        WHERE 1=1
     `;
     const params = [];
+
+    if (status) {
+        if (status === 'Pending' || status === 'Confirmed') {
+            sql += " AND b.status = ?";
+            params.push(status);
+        } else if (status === 'Cancelled') {
+            sql += " AND b.status = 'Cancelled'";
+        }
+    } else {
+        sql += " AND b.status != 'Cancelled'";
+    }
 
     if (date) {
         sql += " AND b.booking_date = ?";
