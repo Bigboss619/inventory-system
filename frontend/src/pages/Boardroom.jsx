@@ -4,19 +4,19 @@ import {
   FiCalendar,
   FiClock,
   FiUsers,
-  FiFileText,
   FiPlus,
   FiX,
   FiChevronLeft,
   FiChevronRight,
-  FiTrash2,
   FiMonitor,
-  FiCoffee
+  FiCoffee,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiHome
 } from 'react-icons/fi';
 import {
   getBoardroomBookings,
   createBoardroomBooking,
-  cancelBoardroomBooking,
   getAvailableSlots,
   getStaff
 } from '../services/api';
@@ -77,25 +77,13 @@ const Boardroom = () => {
     setLoading(true);
     try {
       await createBoardroomBooking(formData);
-      toast.success('Booking submitted successfully');
+      toast.success('Booking submitted successfully!');
       fetchBookings();
       setModalOpen(false);
     } catch (error) {
       toast.error(error.message || 'Failed to create booking');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCancelBooking = async (id) => {
-    if (!confirm('Are you sure you want to cancel this booking?')) return;
-
-    try {
-      await cancelBoardroomBooking(id);
-      toast.success('Booking cancelled');
-      fetchBookings();
-    } catch (error) {
-      toast.error(error.message || 'Failed to cancel booking');
     }
   };
 
@@ -137,6 +125,13 @@ const Boardroom = () => {
     return date.toISOString().split('T')[0] === selectedDate;
   };
 
+  const isPast = (date) => {
+    if (!date) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+
   const prevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   };
@@ -148,136 +143,193 @@ const Boardroom = () => {
   const monthName = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Boardroom Booking</h1>
-          <p className="text-gray-600">Book the boardroom for your meeting</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <FiHome className="w-8 h-8" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Boardroom Booking</h1>
+                <p className="text-blue-100">Reserve the boardroom for your meetings</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
+            >
+              <FiPlus className="w-5 h-5" />
+              Book Now
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <FiPlus className="w-5 h-5" />
-          Book Now
-        </button>
       </div>
 
-      {/* Calendar and Bookings Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border p-4">
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={prevMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <FiChevronLeft className="w-5 h-5" />
-            </button>
-            <h2 className="text-lg font-semibold">{monthName}</h2>
-            <button
-              onClick={nextMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <FiChevronRight className="w-5 h-5" />
-            </button>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Info Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <FiClock className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Working Hours</p>
+              <p className="font-semibold text-gray-800">8:00 AM - 6:00 PM</p>
+            </div>
           </div>
-
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
-                {day}
-              </div>
-            ))}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <FiUsers className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Capacity</p>
+              <p className="font-semibold text-gray-800">Up to 20 people</p>
+            </div>
           </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {generateCalendarDays().map((date, index) => (
-              <button
-                key={index}
-                disabled={!date}
-                onClick={() => date && setSelectedDate(date.toISOString().split('T')[0])}
-                className={`
-                  h-12 rounded-lg transition-colors flex items-center justify-center text-sm
-                  ${!date ? 'invisible' : ''}
-                  ${isSelected(date) && 'bg-blue-600 text-white'}
-                  ${isToday(date) && !isSelected(date) && 'bg-blue-100 text-blue-600 font-semibold'}
-                  ${!isSelected(date) && !isToday(date) && 'hover:bg-gray-100 text-gray-700'}
-                `}
-              >
-                {date?.getDate()}
-              </button>
-            ))}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <FiMonitor className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Amenities</p>
+              <p className="font-semibold text-gray-800">Projector & Refreshments</p>
+            </div>
           </div>
         </div>
 
-        {/* Bookings for selected date */}
-        <div className="bg-white rounded-xl shadow-sm border p-4">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FiCalendar className="w-5 h-5" />
-            {new Date(selectedDate).toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric'
-            })}
-          </h3>
-
-          {fetching ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
-          ) : bookings.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No bookings for this date
+        {/* Calendar and Bookings Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Calendar */}
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg border-0 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={prevMonth}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <FiChevronLeft className="w-5 h-5" />
+              </button>
+              <h2 className="text-xl font-bold text-gray-800">{monthName}</h2>
+              <button
+                onClick={nextMonth}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <FiChevronRight className="w-5 h-5" />
+              </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {bookings.map(booking => (
-                <div
-                  key={booking.id}
-                  className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+
+            <div className="grid grid-cols-7 gap-2 mb-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="text-center text-sm font-medium text-gray-400 py-2">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {generateCalendarDays().map((date, index) => (
+                <button
+                  key={index}
+                  disabled={!date || isPast(date)}
+                  onClick={() => date && setSelectedDate(date.toISOString().split('T')[0])}
+                  className={`
+                    h-14 rounded-xl transition-all flex flex-col items-center justify-center text-sm font-medium
+                    ${!date ? 'invisible' : ''}
+                    ${isPast(date) && 'opacity-30 cursor-not-allowed'}
+                    ${isSelected(date) && 'bg-blue-600 text-white shadow-lg'}
+                    ${isToday(date) && !isSelected(date) && 'bg-blue-100 text-blue-700 font-bold ring-2 ring-blue-300'}
+                    ${!isSelected(date) && !isToday(date) && !isPast(date) && 'hover:bg-gray-100 text-gray-700'}
+                  `}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <FiClock className="w-4 h-4" />
-                        {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
-                      </div>
-                      <p className="font-medium text-gray-800">{booking.meeting_title}</p>
-                      <p className="text-sm text-gray-500 mt-1">{booking.purpose}</p>
-                      <div className="flex items-center gap-3 text-sm text-gray-500 mt-2">
-                        <span className="flex items-center gap-1">
-                          <FiUsers className="w-4 h-4" />
-                          {booking.expected_attendees}
+                  <span>{date?.getDate()}</span>
+                  {date && bookings.find(b => b.booking_date === date.toISOString().split('T')[0]) && !isSelected(date) && (
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-1"></span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bookings for selected date */}
+          <div className="bg-white rounded-2xl shadow-lg border-0 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FiCalendar className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-bold text-gray-800">
+                {new Date(selectedDate).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </h3>
+            </div>
+
+            {fetching ? (
+              <div className="text-center py-12 text-gray-400">Loading...</div>
+            ) : bookings.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FiCheckCircle className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">No bookings for this date</p>
+                <p className="text-sm text-gray-400 mt-1">The boardroom is available</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {bookings.map(booking => (
+                  <div
+                    key={booking.id}
+                    className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm font-semibold text-gray-800">
+                          {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
                         </span>
-                        {booking.refreshments === 'Yes' && (
-                          <span className="flex items-center gap-1">
-                            <FiCoffee className="w-4 h-4" />
-                            Refreshments
-                          </span>
-                        )}
-                        {booking.projector === 'Yes' && (
-                          <span className="flex items-center gap-1">
-                            <FiMonitor className="w-4 h-4" />
-                            Projector
-                          </span>
-                        )}
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">
-                        By: {booking.requested_by} ({booking.department_name})
-                      </p>
-                      <span className={`inline-block text-xs px-2 py-0.5 rounded mt-2 ${
-                        booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                        booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                        booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
+                        'bg-gray-100 text-gray-700'
                       }`}>
                         {booking.status}
                       </span>
                     </div>
+                    <h4 className="font-semibold text-gray-800 mb-1">{booking.meeting_title}</h4>
+                    {booking.purpose && (
+                      <p className="text-sm text-gray-500 mb-2">{booking.purpose}</p>
+                    )}
+                    <div className="flex flex-wrap gap-3 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <FiUsers className="w-4 h-4" />
+                        {booking.expected_attendees}
+                      </span>
+                      {booking.refreshments === 'Yes' && (
+                        <span className="flex items-center gap-1">
+                          <FiCoffee className="w-4 h-4" />
+                          Refreshments
+                        </span>
+                      )}
+                      {booking.projector === 'Yes' && (
+                        <span className="flex items-center gap-1">
+                          <FiMonitor className="w-4 h-4" />
+                          Projector
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-blue-100">
+                      <p className="text-sm text-gray-500">
+                        <span className="font-medium">{booking.requested_by}</span>
+                        <span className="text-gray-400"> • {booking.department_name}</span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -341,28 +393,34 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-          <h2 className="text-lg font-semibold">Book Boardroom</h2>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <FiHome className="w-5 h-5" />
+            </div>
+            <h2 className="text-xl font-bold">Book Boardroom</h2>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/20 rounded-xl transition-colors"
           >
             <FiX className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Requested By (Staff Dropdown) */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Requested By */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Requested By <span className="text-red-500">*</span>
             </label>
             <select
               value={formData.staffId}
               onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               required
             >
               <option value="">Select your name</option>
@@ -374,22 +432,17 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
             </select>
           </div>
 
-          {/* Department (Auto-display) */}
+          {/* Department */}
           {selectedStaff && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-              <input
-                type="text"
-                value={selectedStaff.department_name || ''}
-                className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-600"
-                readOnly
-              />
+            <div className="bg-gray-50 p-4 rounded-xl">
+              <label className="block text-sm text-gray-500 mb-1">Department</label>
+              <p className="font-semibold text-gray-800">{selectedStaff.department_name}</p>
             </div>
           )}
 
           {/* Meeting Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Meeting Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -397,66 +450,68 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
               value={formData.meetingTitle}
               onChange={(e) => setFormData({ ...formData, meetingTitle: e.target.value })}
               placeholder="e.g., Weekly Team Meeting"
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
           </div>
 
           {/* Purpose */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Purpose</label>
             <textarea
               value={formData.purpose}
               onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
               placeholder="Brief description of the meeting"
               rows={2}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
             />
           </div>
 
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={formData.bookingDate}
-              onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              min={new Date().toISOString().split('T')[0]}
-              required
-            />
+          {/* Date & Time Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={formData.bookingDate}
+                onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Start Time <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.startTime}
+                onChange={(e) => setFormData({ ...formData, startTime: e.target.value, endTime: '' })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select time</option>
+                {availableSlots.map((slot, index) => (
+                  <option key={index} value={slot.start}>
+                    {slot.start.slice(0, 5)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* Start Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Time <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.startTime}
-              onChange={(e) => setFormData({ ...formData, startTime: e.target.value, endTime: '' })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="">Select start time</option>
-              {availableSlots.map((slot, index) => (
-                <option key={index} value={slot.start}>
-                  {slot.start.slice(0, 5)}
-                </option>
-              ))}
-            </select>
-            {availableSlots.length === 0 && (
-              <p className="text-sm text-orange-500 mt-1">
-                No available slots for this date
-              </p>
-            )}
-          </div>
+          {availableSlots.length === 0 && (
+            <div className="bg-yellow-50 p-4 rounded-xl flex items-center gap-3">
+              <FiAlertCircle className="w-5 h-5 text-yellow-600" />
+              <p className="text-sm text-yellow-700">No available slots for this date</p>
+            </div>
+          )}
 
-          {/* Expected Attendees */}
+          {/* Attendees */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Expected Attendees <span className="text-red-500">*</span>
             </label>
             <input
@@ -465,46 +520,78 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
               onChange={(e) => setFormData({ ...formData, expectedAttendees: parseInt(e.target.value) || 1 })}
               min={1}
               max={20}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
           </div>
 
-          {/* Refreshments */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Refreshments Required?</label>
-            <select
-              value={formData.refreshments}
-              onChange={(e) => setFormData({ ...formData, refreshments: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="No">No</option>
-              <option value="Yes">Yes</option>
-            </select>
-          </div>
-
-          {/* Projector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Projector Needed?</label>
-            <select
-              value={formData.projector}
-              onChange={(e) => setFormData({ ...formData, projector: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="No">No</option>
-              <option value="Yes">Yes</option>
-            </select>
+          {/* Amenities Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Refreshments</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="refreshments"
+                    value="No"
+                    checked={formData.refreshments === 'No'}
+                    onChange={(e) => setFormData({ ...formData, refreshments: e.target.value })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-gray-600">No</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="refreshments"
+                    value="Yes"
+                    checked={formData.refreshments === 'Yes'}
+                    onChange={(e) => setFormData({ ...formData, refreshments: e.target.value })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-gray-600">Yes</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Projector</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="projector"
+                    value="No"
+                    checked={formData.projector === 'No'}
+                    onChange={(e) => setFormData({ ...formData, projector: e.target.value })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-gray-600">No</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="projector"
+                    value="Yes"
+                    checked={formData.projector === 'Yes'}
+                    onChange={(e) => setFormData({ ...formData, projector: e.target.value })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-gray-600">Yes</span>
+                </label>
+              </div>
+            </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Any additional information"
               rows={2}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
             />
           </div>
 
@@ -513,14 +600,14 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || availableSlots.length === 0}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl hover:from-blue-700 hover:to-indigo-800 transition-all font-medium disabled:opacity-50 shadow-lg"
             >
               {loading ? 'Submitting...' : 'Submit Booking'}
             </button>
