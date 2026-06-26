@@ -576,3 +576,79 @@ export const deleteMaintenance = async (id) => {
   }
   return response.json();
 };
+
+// ==================== BOARDROOM BOOKINGS ====================
+
+export const getBoardroomBookings = async (params = {}) => {
+  const queryString = new URLSearchParams(params).toString();
+  const url = queryString ? `${API_URL}/boardroom?${queryString}` : `${API_URL}/boardroom`;
+  const response = await fetch(url);
+  return response.json();
+};
+
+export const getBoardroomBookingById = async (id) => {
+  const response = await fetch(`${API_URL}/boardroom/${id}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch booking');
+  }
+  return response.json();
+};
+
+export const createBoardroomBooking = async (data) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const response = await fetch(`${API_URL}/boardroom`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'user-id': user.id
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create booking');
+  }
+  return response.json();
+};
+
+export const updateBoardroomBooking = async (id, data) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const response = await fetch(`${API_URL}/boardroom/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'user-id': user.id
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update booking');
+  }
+  return response.json();
+};
+
+export const cancelBoardroomBooking = async (id) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const response = await fetch(`${API_URL}/boardroom/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'user-id': user.id
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to cancel booking');
+  }
+  return response.json();
+};
+
+export const getAvailableSlots = async (date) => {
+  const response = await fetch(`${API_URL}/boardroom/available-slots/${date}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch available slots');
+  }
+  return response.json();
+};

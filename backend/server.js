@@ -12,6 +12,7 @@ const itemsRoutes = require("./routes/items");
 const stockInRoutes = require("./routes/stockIn");
 const stockOutRoutes = require("./routes/stockOut");
 const vehicleRoutes = require("./routes/vehicles");
+const boardroomRoutes = require("./routes/boardroom");
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/api/items", itemsRoutes);
 app.use("/api/stock-in", stockInRoutes);
 app.use("/api/stock-out", stockOutRoutes);
 app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/boardroom", boardroomRoutes);
 
 app.get("/", (req, res) => {
     res.send("Inventory Management API is running...");
