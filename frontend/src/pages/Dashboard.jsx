@@ -33,6 +33,7 @@ const getDaysLeft = (expiryDate) => {
 const Dashboard = () => {
   const { user } = useAuth();
   const role = user?.role || 'Super Admin';
+  const officerType = user?.officer_type || 'both';
 
   const [stats, setStats] = useState({
     totalItems: 0,
@@ -74,21 +75,37 @@ const Dashboard = () => {
       const stockOut = Array.isArray(stockOutData) ? stockOutData : [];
       const documents = Array.isArray(docsData) ? docsData : [];
 
+      // Check if user is Inventory Officer
+      const isInventoryOfficer = role === 'Inventory Officer';
+
+      // Filter items by officer_type for Inventory Officer
+      const filterByOfficerType = (item) => {
+        if (officerType === 'both') return true;
+        return item.officer_type === officerType || item.officer_type === 'both' || !item.officer_type;
+      };
+
+      // Filter items based on officer_type (only for Inventory Officer)
+      const filteredItems = isInventoryOfficer ? items.filter(filterByOfficerType) : items;
+
+      // Filter stockIn/stockOut based on officer_type (only for Inventory Officer)
+      const filteredStockIn = isInventoryOfficer ? stockIn.filter(filterByOfficerType) : stockIn;
+      const filteredStockOut = isInventoryOfficer ? stockOut.filter(filterByOfficerType) : stockOut;
+
       // Total Inventory Items
-      const totalItems = items.length;
+      const totalItems = filteredItems.length;
 
       // Low Stock Items (quantity < min_stock_level)
-      const lowStockItems = items.filter(item =>
+      const lowStockItems = filteredItems.filter(item =>
         item.quantity < item.min_stock_level
       ).length;
 
       // Stock In Today
-      const stockInToday = stockIn
+      const stockInToday = filteredStockIn
         .filter(s => getDateStr(s.transaction_date) === today)
         .reduce((sum, s) => sum + (s.quantity || 0), 0);
 
       // Stock Out Today
-      const stockOutToday = stockOut
+      const stockOutToday = filteredStockOut
         .filter(s => getDateStr(s.transaction_date) === today)
         .reduce((sum, s) => sum + (s.quantity || 0), 0);
 
