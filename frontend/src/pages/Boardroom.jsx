@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import {
   FiCalendar,
@@ -12,7 +12,8 @@ import {
   FiCoffee,
   FiCheckCircle,
   FiAlertCircle,
-  FiHome
+  FiHome,
+  FiSearch
 } from 'react-icons/fi';
 import {
   getBoardroomBookings,
@@ -373,6 +374,32 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
   });
 
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [staffSearch, setStaffSearch] = useState('');
+  const [showStaffDropdown, setShowStaffDropdown] = useState(false);
+
+  // Filter staff based on search
+  const filteredStaff = staff.filter(s => {
+    if (!staffSearch) return true;
+    const search = staffSearch.toLowerCase();
+    return (
+      s.first_name?.toLowerCase().includes(search) ||
+      s.last_name?.toLowerCase().includes(search) ||
+      s.department_name?.toLowerCase().includes(search)
+    );
+  });
+
+  const staffDropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (staffDropdownRef.current && !staffDropdownRef.current.contains(event.target)) {
+        setShowStaffDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     setFormData(prev => ({ ...prev, bookingDate: selectedDate }));
@@ -421,24 +448,56 @@ const BookingModal = ({ isOpen, onClose, onSave, selectedDate, availableSlots, s
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Requested By */}
-          <div>
+          {/* Requested By - Searchable Dropdown */}
+          <div className="relative" ref={staffDropdownRef}>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Requested By <span className="text-red-500">*</span>
             </label>
-            <select
-              value={formData.staffId}
-              onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              required
-            >
-              <option value="">Select your name</option>
-              {staff.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.first_name} {s.last_name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={staffSearch}
+                  onChange={(e) => {
+                    setStaffSearch(e.target.value);
+                    setShowStaffDropdown(true);
+                  }}
+                  onFocus={() => setShowStaffDropdown(true)}
+                  placeholder="Search by name or department..."
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  required
+                />
+              </div>
+              {/* Dropdown */}
+              {showStaffDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  {filteredStaff.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">No staff found</div>
+                  ) : (
+                    filteredStaff.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, staffId: s.id.toString() });
+                          setStaffSearch(`${s.first_name} ${s.last_name}`);
+                          setShowStaffDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center justify-between"
+                      >
+                        <span className="font-medium text-gray-800">
+                          {s.first_name} {s.last_name}
+                        </span>
+                        <span className="text-sm text-gray-500">{s.department_name}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Hidden select for form validation */}
+            <input type="hidden" value={formData.staffId} required />
           </div>
 
           {/* Department */}
