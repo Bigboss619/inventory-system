@@ -226,9 +226,12 @@ router.put("/:id", (req, res) => {
             // Send email notification if status changed
             if (status === 'Confirmed' || status === 'Cancelled') {
                 const getBookingSql = `
-                    SELECT b.*, s.email as staff_email
+                    SELECT b.*, s.email as staff_email,
+                           CONCAT(s.first_name, ' ', s.last_name) as requested_by,
+                           d.name as department_name
                     FROM boardroom_bookings b
                     LEFT JOIN staff s ON b.staff_id = s.id
+                    LEFT JOIN departments d ON s.department_id = d.id
                     WHERE b.id = ?
                 `;
                 db.query(getBookingSql, [id], (err, bookingResults) => {
