@@ -26,6 +26,7 @@ export const ROUTE_PERMISSIONS = {
   '/reports/documents': [ROLES.SUPER_ADMIN, ROLES.DOCUMENT_OFFICER],
   '/users': [ROLES.SUPER_ADMIN],
   '/admin/boardroom': [ROLES.SUPER_ADMIN],
+  '/approved-bookings': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER],
   '/profile': [ROLES.SUPER_ADMIN, ROLES.INVENTORY_OFFICER, ROLES.DOCUMENT_OFFICER, ROLES.STAFF],
   '/settings': [ROLES.SUPER_ADMIN]
 };
@@ -36,6 +37,8 @@ export const MENU_BY_ROLE = {
 
   [ROLES.INVENTORY_OFFICER]: {
     Dashboard: null,
+    'Boardroom': null,
+    'Approved Bookings': null,
     'Inventory Management': [
       'Categories',
       'Items',

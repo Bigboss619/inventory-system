@@ -28,6 +28,7 @@ const DocumentReport = lazy(() => import('./pages/DocumentReport'));
 const Users = lazy(() => import('./pages/Users'));
 const Boardroom = lazy(() => import('./pages/Boardroom'));
 const BoardroomAdmin = lazy(() => import('./pages/BoardroomAdmin'));
+const ApprovedBookings = lazy(() => import('./pages/ApprovedBookings'));
 
 // Layout
 const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'));
@@ -173,6 +174,13 @@ const router = createBrowserRouter([
         element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
         children: [
           { path: '/admin/boardroom', element: <BoardroomAdmin /> }
+        ]
+      },
+      {
+        path: '/approved-bookings',
+        element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
+        children: [
+          { path: '/approved-bookings', element: <ApprovedBookings /> }
         ]
       }
     ]
