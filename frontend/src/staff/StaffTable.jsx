@@ -11,8 +11,7 @@ const StaffTable = ({ staff, fetching, onView, onEdit, onDelete }) => {
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staff ID</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
-              {/* <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Position</th> */}
-              {/* <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th> */}
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -37,8 +36,7 @@ const StaffTable = ({ staff, fetching, onView, onEdit, onDelete }) => {
                       {s.department_name}
                     </span>
                   </td>
-                  {/* <td className="px-4 py-4 text-sm text-gray-700">{s.position || '-'}</td> */}
-                  {/* <td className="px-4 py-4 text-sm text-gray-700">{s.email}</td> */}
+                  <td className="px-4 py-4 text-sm text-gray-700">{s.email || '-'}</td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <button

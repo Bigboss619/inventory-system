@@ -33,6 +33,10 @@ const ViewStaffModal = ({ isOpen, onClose, staff }) => {
               <span className="font-medium text-gray-900">{staff.department_name}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-gray-500">Email</span>
+              <span className="font-medium text-gray-900">{staff.email || '-'}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-gray-500">Date Created</span>
               <span className="font-medium text-gray-900">
                 {staff.created_at ? new Date(staff.created_at).toLocaleDateString() : '-'}
