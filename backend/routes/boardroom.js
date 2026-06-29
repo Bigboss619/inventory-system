@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../config/config");
+const { sendBookingNotificationToAdmin, sendBookingApprovedEmail, sendBookingRejectedEmail } = require("../services/emailService");
 
 const router = express.Router();
 
@@ -116,10 +117,31 @@ router.post("/", (req, res) => {
         db.query(sql, [
             staffId, meetingTitle, purpose, bookingDate, startTime, endTime,
             expectedAttendees || 1, refreshments || 'No', projector || 'No', notes
-        ], (err, results) => {
+        ], async (err, results) => {
             if (err) {
                 return res.status(500).json({ message: "Error creating booking", error: err });
             }
+
+            const bookingId = results.insertId;
+
+            // Get booking details with staff info for email
+            const getBookingSql = `
+                SELECT b.*, CONCAT(s.first_name, ' ', s.last_name) as requested_by, d.name as department_name
+                FROM boardroom_bookings b
+                LEFT JOIN staff s ON b.staff_id = s.id
+                LEFT JOIN departments d ON s.department_id = d.id
+                WHERE b.id = ?
+            `;
+
+            db.query(getBookingSql, [bookingId], (err, bookingResults) => {
+                if (!err && bookingResults.length > 0) {
+                    const booking = bookingResults[0];
+                    // Send email to admin
+                    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+                    sendBookingNotificationToAdmin(booking, adminEmail).catch(console.error);
+                }
+            });
+
             res.status(201).json({ message: "Booking created successfully", bookingId: results.insertId });
         });
     });
@@ -200,6 +222,27 @@ router.put("/:id", (req, res) => {
             if (err) {
                 return res.status(500).json({ message: "Error updating booking", error: err });
             }
+
+            // Send email notification if status changed
+            if (status === 'Confirmed' || status === 'Cancelled') {
+                const getBookingSql = `
+                    SELECT b.*, s.email as staff_email
+                    FROM boardroom_bookings b
+                    LEFT JOIN staff s ON b.staff_id = s.id
+                    WHERE b.id = ?
+                `;
+                db.query(getBookingSql, [id], (err, bookingResults) => {
+                    if (!err && bookingResults.length > 0) {
+                        const booking = bookingResults[0];
+                        if (status === 'Confirmed') {
+                            sendBookingApprovedEmail(booking, booking.staff_email).catch(console.error);
+                        } else if (status === 'Cancelled') {
+                            sendBookingRejectedEmail(booking, booking.staff_email).catch(console.error);
+                        }
+                    }
+                });
+            }
+
             res.json({ message: "Booking updated successfully" });
         });
     });

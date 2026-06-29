@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node -c backend/routes/vehicles.js)",
       "Bash(npm run build)",
-      "Bash(node -e \"const db = require\\(''./config/config''\\); db.query\\(''SELECT 1'', \\(err, results\\) => { if \\(err\\) console.error\\(''ERROR:'', err\\); else console.log\\(''OK:'', results\\); }\\);\")"
+      "Bash(node -e \"const db = require\\(''./config/config''\\); db.query\\(''SELECT 1'', \\(err, results\\) => { if \\(err\\) console.error\\(''ERROR:'', err\\); else console.log\\(''OK:'', results\\); }\\);\")",
+      "Bash(npm install nodemailer)"
     ]
   }
 }
