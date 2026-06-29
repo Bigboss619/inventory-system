@@ -1,6 +1,6 @@
 const express = require("express");
 const db = require("../config/config");
-const { sendBookingNotificationToAdmin, sendBookingApprovedEmail, sendBookingRejectedEmail } = require("../services/emailService");
+const { sendBookingNotificationToAdmin, sendBookingApprovedEmail, sendBookingRejectedEmail, sendProjectorNotificationToIT } = require("../services/emailService");
 
 const router = express.Router();
 
@@ -235,9 +235,21 @@ router.put("/:id", (req, res) => {
                     if (!err && bookingResults.length > 0) {
                         const booking = bookingResults[0];
                         if (status === 'Confirmed') {
-                            sendBookingApprovedEmail(booking, booking.staff_email).catch(console.error);
+                            // Send approval email to staff
+                            if (booking.staff_email) {
+                                sendBookingApprovedEmail(booking, booking.staff_email).catch(console.error);
+                            }
+                            // Send IT notification if projector is requested
+                            if (booking.projector === 'Yes') {
+                                const itEmail = process.env.IT_EMAIL;
+                                if (itEmail) {
+                                    sendProjectorNotificationToIT(booking, itEmail).catch(console.error);
+                                }
+                            }
                         } else if (status === 'Cancelled') {
-                            sendBookingRejectedEmail(booking, booking.staff_email).catch(console.error);
+                            if (booking.staff_email) {
+                                sendBookingRejectedEmail(booking, booking.staff_email).catch(console.error);
+                            }
                         }
                     }
                 });

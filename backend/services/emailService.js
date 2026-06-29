@@ -111,8 +111,44 @@ const sendBookingRejectedEmail = async (booking, staffEmail) => {
   }
 };
 
+// Send notification to IT team when projector is requested
+const sendProjectorNotificationToIT = async (booking, itEmail) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'your-email@gmail.com',
+    to: itEmail,
+    subject: `TV/Projector Booking Request - ${booking.meeting_title}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #7c3aed;">TV/Projector Booking Request</h2>
+        <div style="background: #f5f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #1e293b;">${booking.meeting_title}</h3>
+          <p><strong>Requested By:</strong> ${booking.requested_by}</p>
+          <p><strong>Department:</strong> ${booking.department_name}</p>
+          <p><strong>Date:</strong> ${booking.booking_date}</p>
+          <p><strong>Time:</strong> ${booking.start_time} - ${booking.end_time}</p>
+          <p><strong>Expected Attendees:</strong> ${booking.expected_attendees}</p>
+          ${booking.notes ? `<p><strong>Notes:</strong> ${booking.notes}</p>` : ''}
+        </div>
+        <p style="color: #64748b; font-size: 14px;">
+          Please prepare the TV/projector for this meeting.
+        </p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('IT notification email sent successfully');
+    return true;
+  } catch (error) {
+    console.error('Error sending IT email:', error.message);
+    return false;
+  }
+};
+
 module.exports = {
   sendBookingNotificationToAdmin,
   sendBookingApprovedEmail,
-  sendBookingRejectedEmail
+  sendBookingRejectedEmail,
+  sendProjectorNotificationToIT
 };
