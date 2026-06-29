@@ -2,9 +2,9 @@ const nodemailer = require('nodemailer');
 
 // Create transporter - configure with your SMTP settings
 // For Gmail, use your App Password (not regular password)
-// For other services, configure accordingly
+// Using service shorthand (handles network issues internally)
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // or use 'smtp.gmail.com' with port 465
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'your-email@gmail.com',
     pass: process.env.EMAIL_PASS || 'your-app-password'
