@@ -90,8 +90,8 @@ const Sidebar = ({ isOpen, onClose }) => {
         return true;
       }
 
-      // Check if this menu/section is allowed
-      if (item.title && roleConfig[item.title]) {
+      // Check if this menu/section is allowed (check if key exists, as value can be null)
+      if (item.title && (item.title in roleConfig)) {
         // For parent menus, filter children
         if (item.children && Array.isArray(roleConfig[item.title])) {
           item.allowedChildren = roleConfig[item.title];
